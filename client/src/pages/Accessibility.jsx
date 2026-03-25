@@ -8,6 +8,7 @@ function Icon({ path, className = "w-4 h-4" }) {
   );
 }
 
+
 const STANDARDS = [
   {
     title: "Perceivable",
