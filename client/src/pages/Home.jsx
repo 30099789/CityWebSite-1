@@ -15,7 +15,10 @@ export default function Home() {
         </h1>
 
         <p className="text-white text-lg max-w-4xl">
-          Welcome to CityLink Initiatives. Access events, announcements,
+          Welcome to CityLink Initiatives. 
+        </p>
+        <p className="text-white text-lg max-w-4xl">
+          Access events, announcements,
           services and community feedback in one place.
         </p>
       </section>
