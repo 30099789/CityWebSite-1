@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<announcements>
+
+  <!-- ═══════════════════════════════════════════
+       CityLink Smart Community Portal
+       Announcements — Seed Data
+       Parsed by fast-xml-parser v5
+       Priority: high | medium | low
+       Status:   published | draft | archived
+       ═══════════════════════════════════════════ -->
+
+  <item id="ann-001">
+    <title>Community Hall Reopening — Bookings Now Open</title>
+    <summary>The Northside Community Hall has completed its renovation and is now accepting bookings for events, meetings, and functions.</summary>
+    <content>
+      We are pleased to announce that the Northside Community Hall renovation has been completed ahead of schedule.
+      The hall has been upgraded with new accessible entrances, a modern kitchen, improved lighting, and a new PA system.
+      Bookings are now open for community groups, private events, and council meetings.
+      To book the hall, please visit the Services page or contact our events team directly.
+    </content>
+    <priority>high</priority>
+    <status>published</status>
+    <date>2026-03-10</date>
+    <category>Facilities</category>
+    <audience>all</audience>
+    <author>CityLink Events Team</author>
+  </item>
+
+  <item id="ann-002">
+    <title>Rates Notices — March Quarter Now Available Online</title>
+    <summary>The March quarter rates notices have been issued. Residents can now view and pay their rates online through the portal.</summary>
+    <content>
+      March quarter rates notices have been issued to all ratepayers. You can now view your notice and make payment online through the portal.
+      Payment options include credit/debit card, BPAY, and direct debit. The due date for this quarter is 31 March 2026.
+      If you believe there is an error in your assessment, please contact the Rates team within 30 days of the notice date.
+      Pensioner concessions and payment plans are available — contact us for more information.
+    </content>
+    <priority>high</priority>
+    <status>published</status>
+    <date>2026-03-05</date>
+    <category>Finance</category>
+    <audience>residents</audience>
+    <author>CityLink Finance Department</author>
+  </item>
+
+  <item id="ann-003">
+    <title>Free Community BBQ — Saturday 22 March</title>
+    <summary>Join us for a free community BBQ at Riverside Park this Saturday. All welcome — bring the family!</summary>
+    <content>
+      CityLink Initiatives is hosting a free community BBQ at Riverside Park on Saturday 22 March 2026 from 11:00 AM to 2:00 PM.
+      This is a great opportunity to meet your neighbours, find out about local services, and speak with council representatives.
+      There will be free sausage sizzle, soft drinks, activities for kids, and live acoustic music.
+      No registration required — just turn up! The event will be held rain or shine (undercover area available).
+    </content>
+    <priority>medium</priority>
+    <status>published</status>
+    <date>2026-03-14</date>
+    <category>Community Events</category>
+    <audience>all</audience>
+    <author>CityLink Community Team</author>
+  </item>
+
+  <item id="ann-004">
+    <title>Waste Collection Schedule Change — Easter Long Weekend</title>
+    <summary>Kerbside waste and recycling collection will be one day later than usual during the Easter long weekend (18–21 April 2026).</summary>
+    <content>
+      Please note that due to the Easter public holidays, kerbside waste and recycling collections will be delayed by one day for the week of 18–21 April 2026.
+      If your normal collection day is Friday 18 April (Good Friday), your bin will be collected on Saturday 19 April instead.
+      All other collection days in that week will also shift forward by one day.
+      Please ensure bins are placed at the kerbside by 6:00 AM on your revised collection day.
+      The normal schedule resumes from Monday 28 April.
+    </content>
+    <priority>medium</priority>
+    <status>published</status>
+    <date>2026-03-01</date>
+    <category>Waste Management</category>
+    <audience>residents</audience>
+    <author>CityLink Waste Services</author>
+  </item>
+
+  <item id="ann-005">
+    <title>Portal Maintenance — Scheduled Downtime Sunday 23 March (2–4 AM)</title>
+    <summary>The CityLink portal will be briefly offline for scheduled maintenance on Sunday 23 March between 2:00 AM and 4:00 AM AWST.</summary>
+    <content>
+      To continue improving the portal experience, we will be performing scheduled maintenance on Sunday 23 March 2026 between 2:00 AM and 4:00 AM AWST.
+      During this window, the portal will be unavailable. This includes the events booking system, feedback submission, and account login.
+      Emergency contact information will remain available on the homepage during the maintenance window.
+      We apologise for any inconvenience. If you need to complete a time-sensitive task, please do so before 2:00 AM Sunday.
+    </content>
+    <priority>low</priority>
+    <status>published</status>
+    <date>2026-03-18</date>
+    <category>System</category>
+    <audience>all</audience>
+    <author>CityLink IT Team</author>
+  </item>
+
+</announcements>

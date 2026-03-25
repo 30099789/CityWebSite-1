@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<menu>
+  <navbar>
+    <item>
+      <label>Home</label>
+      <path>/</path>
+      <end>true</end>
+    </item>
+    <item>
+      <label>Services</label>
+      <path>/services</path>
+      <end>false</end>
+    </item>
+    <item>
+      <label>Events</label>
+      <path>/events</path>
+      <end>false</end>
+    </item>
+    <item>
+      <label>FAQ</label>
+      <path>/faq</path>
+      <end>false</end>
+    </item>
+    <item>
+      <label>Announcements</label>
+      <path>/announcements</path>
+      <end>false</end>
+    </item>
+    <item>
+      <label>Feedback</label>
+      <path>/feedback</path>
+      <end>false</end>
+    </item>
+    <item>
+      <label>Contact</label>
+      <path>/contact</path>
+      <end>false</end>
+    </item>
+  </navbar>
+  <footer>
+    <section name="Quick Links">
+      <item><label>Services</label><path>/services</path></item>
+      <item><label>Events</label><path>/events</path></item>
+      <item><label>FAQ</label><path>/faq</path></item>
+      <item><label>Feedback</label><path>/feedback</path></item>
+    </section>
+    <section name="Legal">
+      <item><label>Accessibility Statement</label><path>/accessibility</path></item>
+      <item><label>Privacy Policy</label><path>/privacy</path></item>
+      <item><label>Terms of Service</label><path>/terms</path></item>
+    </section>
+  </footer>
+</menu>
