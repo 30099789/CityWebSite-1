@@ -231,9 +231,9 @@ export default function MainLayout() {
       {/* ── PAGE CONTENT ─────────────────────────────────────────────────────
           <Outlet /> renders whatever page is currently active based on the route.
           For example: /events renders Events.jsx, /contact renders Contact.jsx */}
-      <main className="flex-1 w-full">
-        <Outlet />
-      </main>
+<main className="flex-1 w-full px-4 md:px-6 max-w-6xl mx-auto">
+  <Outlet />
+</main>
 
       {/* ── FOOTER ───────────────────────────────────────────────────────────
           4-column layout: Brand, Quick Links (from XML), Legal (from XML), Contact.
