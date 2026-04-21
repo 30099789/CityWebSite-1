@@ -1,178 +1,334 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { fetchUsers, updateUser, deleteUser } from "../../services/userService";
-
-const ROLE_COLORS   = { admin: "bg-blue-50 text-blue-700 border-blue-100", staff: "bg-emerald-50 text-emerald-700 border-emerald-100", user: "bg-slate-100 text-slate-600 border-slate-200" };
-const STATUS_COLORS = { Active: "bg-green-50 text-green-700 border-green-100", Inactive: "bg-red-50 text-red-700 border-red-100" };
-
-function AdminNav({ title }) {
-  return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link to="/admin" className="text-sm text-slate-500 hover:text-slate-900 transition">← Dashboard</Link>
-          <span className="text-slate-300">|</span>
-          <span className="text-sm font-semibold text-slate-900">{title}</span>
-        </div>
-        <Link to="/" className="text-xs text-slate-400 hover:text-blue-600 transition">Public site →</Link>
-      </div>
-    </header>
-  );
-}
+import {
+  fetchUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+} from "../../services/userService";
 
 export default function ManageUsers() {
-  const [users, setUsers]   = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState([]);
+  const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("All");
-  const [toast, setToast]   = useState(null);
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [message, setMessage] = useState("");
 
-  function loadUsers() {
-    setLoading(true);
-    fetchUsers().then(data => { setUsers(data); setLoading(false); });
-  }
-
-  useEffect(() => { loadUsers(); }, []);
-
-  function showToast(msg, type = "success") {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  }
-
-  async function toggleStatus(id) {
-    const u = users.find(u => u.id === id);
-    const newStatus = u.status === "Active" ? "Inactive" : "Active";
-    await updateUser(id, { status: newStatus });
-    setUsers(users.map(u => u.id === id ? { ...u, status: newStatus } : u));
-    showToast(`User ${newStatus === "Active" ? "activated" : "deactivated"}.`);
-  }
-
-  async function changeRole(id, role) {
-    await updateUser(id, { role });
-    setUsers(users.map(u => u.id === id ? { ...u, role } : u));
-    showToast(`Role updated to ${role}.`);
-  }
-
-  async function removeUser(id) {
-    if (!window.confirm("Remove this user? This cannot be undone.")) return;
-    await deleteUser(id);
-    setUsers(users.filter(u => u.id !== id));
-    showToast("User removed.");
-  }
-
-  const roles = ["All", "admin", "staff", "user"];
-  const filtered = users.filter(u => {
-    const matchSearch = u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase());
-    const matchRole   = filter === "All" || u.role === filter;
-    return matchSearch && matchRole;
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    role: "resident",
+    password: "123456",
   });
 
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      const data = await fetchUsers();
+      setUsers(data);
+    } catch (error) {
+      console.error("Failed to load users:", error);
+      setMessage("Failed to load users");
+    }
+  };
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const resetForm = () => {
+    setForm({
+      name: "",
+      email: "",
+      role: "resident",
+      password: "123456",
+    });
+    setEditingId(null);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!form.name.trim() || !form.email.trim()) {
+      setMessage("Name and email are required");
+      return;
+    }
+
+    try {
+      if (editingId) {
+        await updateUser(editingId, form);
+        setMessage("User updated successfully");
+      } else {
+        await createUser(form);
+        setMessage("User added successfully");
+      }
+
+      resetForm();
+      loadUsers();
+    } catch (error) {
+      console.error("Failed to save user:", error);
+      setMessage("Failed to save user");
+    }
+  };
+
+  const handleEdit = (user) => {
+    setForm({
+      name: user.name || "",
+      email: user.email || "",
+      role: user.role || "resident",
+      password: user.password || "123456",
+    });
+    setEditingId(user._id);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
+  const handleDelete = async (id) => {
+    const ok = window.confirm("Delete this user?");
+    if (!ok) return;
+
+    try {
+      await deleteUser(id);
+      setMessage("User deleted successfully");
+      loadUsers();
+    } catch (error) {
+      console.error("Failed to delete user:", error);
+      setMessage("Failed to delete user");
+    }
+  };
+
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
+      user.name?.toLowerCase().includes(search.toLowerCase()) ||
+      user.email?.toLowerCase().includes(search.toLowerCase());
+
+    const matchesRole =
+      roleFilter === "all" ? true : user.role === roleFilter;
+
+    return matchesSearch && matchesRole;
+  });
+
+  const adminCount = users.filter((u) => u.role === "admin").length;
+  const staffCount = users.filter((u) => u.role === "staff").length;
+  const residentCount = users.filter((u) => u.role === "resident").length;
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <AdminNav title="Manage Users" />
-
-      {toast && (
-        <div className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium ${
-          toast.type === "error" ? "bg-red-50 border-red-200 text-red-700" : "bg-emerald-50 border-emerald-200 text-emerald-700"
-        }`}>{toast.msg}</div>
-      )}
-
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <main className="min-h-screen bg-slate-100">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Top bar */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Users</h1>
-            <p className="text-sm text-slate-500">{users.length} registered accounts</p>
+            <p className="text-sm text-slate-500 mb-1">Admin Panel</p>
+            <h1 className="text-4xl font-bold text-slate-900">Manage Users</h1>
+            <p className="text-slate-600 mt-2">
+              Add, edit and remove portal users from one place.
+            </p>
           </div>
-          <button onClick={loadUsers}
-            className="px-4 py-2 text-sm font-semibold border border-slate-200 rounded-xl hover:bg-slate-50 transition flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-            </svg>
-            Refresh
-          </button>
+
+          <div className="flex gap-3">
+            <Link
+              to="/admin"
+              className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              ← Back to Dashboard
+            </Link>
+
+            <button
+              onClick={loadUsers}
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-slate-800"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          {["admin","staff","user"].map(role => (
-            <div key={role} className="bg-white rounded-xl border border-slate-200 px-4 py-3 text-center shadow-sm">
-              <div className="text-xl font-bold text-slate-900">{users.filter(u => u.role === role).length}</div>
-              <div className="text-xs text-slate-500 capitalize">{role}s</div>
-            </div>
-          ))}
-        </div>
+        <div className="grid gap-4 md:grid-cols-4 mb-6">
+          <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-200">
+            <p className="text-sm text-slate-500">Total Users</p>
+            <h2 className="text-3xl font-bold text-slate-900 mt-2">{users.length}</h2>
+          </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <input type="text" placeholder="Search name or email…" value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white" />
-          <div className="flex gap-2">
-            {roles.map(r => (
-              <button key={r} onClick={() => setFilter(r)}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
-                  filter === r ? "bg-blue-700 text-white border-blue-700" : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
-                }`}>{r}</button>
-            ))}
+          <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-200">
+            <p className="text-sm text-slate-500">Admins</p>
+            <h2 className="text-3xl font-bold text-blue-600 mt-2">{adminCount}</h2>
+          </div>
+
+          <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-200">
+            <p className="text-sm text-slate-500">Staff</p>
+            <h2 className="text-3xl font-bold text-amber-600 mt-2">{staffCount}</h2>
+          </div>
+
+          <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-200">
+            <p className="text-sm text-slate-500">Residents</p>
+            <h2 className="text-3xl font-bold text-emerald-600 mt-2">{residentCount}</h2>
           </div>
         </div>
 
-        {/* Table */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
-          <table className="w-full text-sm min-w-max">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">User</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Email</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Role</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Joined</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading && (
-                <tr><td colSpan="6" className="text-center py-10 text-slate-400 text-sm">Loading users…</td></tr>
-              )}
-              {!loading && filtered.length === 0 && (
-                <tr><td colSpan="6" className="text-center py-10 text-slate-400 text-sm">No users found.</td></tr>
-              )}
-              {!loading && filtered.map(u => (
-                <tr key={u.id} className="hover:bg-slate-50 transition">
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                        {u.name?.slice(0,2).toUpperCase()}
-                      </div>
-                      <span className="font-medium text-slate-800">{u.name}</span>
+        {/* Message */}
+        {message && (
+          <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+            {message}
+          </div>
+        )}
+
+        {/* Form */}
+        <section className="rounded-2xl bg-white shadow-sm border border-slate-200 p-6 mb-8">
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-slate-900">
+              {editingId ? "Edit User" : "Add New User"}
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Fill in the details below to create or update a user account.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+            <input
+              type="text"
+              name="name"
+              placeholder="Full name"
+              value={form.name}
+              onChange={handleChange}
+              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+            />
+
+            <input
+              type="email"
+              name="email"
+              placeholder="Email address"
+              value={form.email}
+              onChange={handleChange}
+              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+            />
+
+            <select
+              name="role"
+              value={form.role}
+              onChange={handleChange}
+              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+            >
+              <option value="resident">Resident</option>
+              <option value="staff">Staff</option>
+              <option value="admin">Admin</option>
+            </select>
+
+            <input
+              type="text"
+              name="password"
+              placeholder="Password"
+              value={form.password}
+              onChange={handleChange}
+              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+            />
+
+            <div className="md:col-span-2 flex gap-3 pt-2">
+              <button
+                type="submit"
+                className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow hover:bg-blue-700"
+              >
+                {editingId ? "Update User" : "Add User"}
+              </button>
+
+              <button
+                type="button"
+                onClick={resetForm}
+                className="rounded-xl bg-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-300"
+              >
+                Clear
+              </button>
+            </div>
+          </form>
+        </section>
+
+        {/* Filters */}
+        <section className="rounded-2xl bg-white shadow-sm border border-slate-200 p-6 mb-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <input
+              type="text"
+              placeholder="Search by name or email"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+            />
+
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+            >
+              <option value="all">All Roles</option>
+              <option value="resident">Residents</option>
+              <option value="staff">Staff</option>
+              <option value="admin">Admins</option>
+            </select>
+          </div>
+        </section>
+
+        {/* User cards */}
+        <section className="grid gap-5">
+          {filteredUsers.length === 0 ? (
+            <div className="rounded-2xl bg-white shadow-sm border border-slate-200 p-8 text-center text-slate-500">
+              No users found.
+            </div>
+          ) : (
+            filteredUsers.map((user) => (
+              <div
+                key={user._id}
+                className="rounded-2xl bg-white shadow-sm border border-slate-200 p-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="h-14 w-14 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center text-lg font-bold">
+                    {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                  </div>
+
+                  <div>
+                    <h3 className="text-xl font-semibold text-slate-900">
+                      {user.name}
+                    </h3>
+                    <p className="text-slate-600">{user.email}</p>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                        Role: {user.role}
+                      </span>
+
+                      <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                        Created:{" "}
+                        {user.createdAt
+                          ? new Date(user.createdAt).toLocaleDateString()
+                          : "N/A"}
+                      </span>
                     </div>
-                  </td>
-                  <td className="px-4 py-3.5 text-slate-500 hidden sm:table-cell">{u.email}</td>
-                  <td className="px-4 py-3.5">
-                    <select value={u.role} onChange={e => changeRole(u.id, e.target.value)}
-                      className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold cursor-pointer focus:outline-none ${ROLE_COLORS[u.role] || ""}`}>
-                      <option value="user">user</option>
-                      <option value="staff">staff</option>
-                      <option value="admin">admin</option>
-                    </select>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${STATUS_COLORS[u.status] || ""}`}>{u.status}</span>
-                  </td>
-                  <td className="px-4 py-3.5 text-slate-500 hidden md:table-cell">{u.joined}</td>
-                  <td className="px-4 py-3.5 text-right space-x-2">
-                    <button onClick={() => toggleStatus(u.id)}
-                      className={`text-xs font-semibold hover:underline ${u.status === "Active" ? "text-orange-500" : "text-green-600"}`}>
-                      {u.status === "Active" ? "Deactivate" : "Activate"}
-                    </button>
-                    <button onClick={() => removeUser(u.id)} className="text-xs font-semibold text-red-500 hover:underline">Remove</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleEdit(user)}
+                    className="rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-600"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    onClick={() => handleDelete(user._id)}
+                    className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

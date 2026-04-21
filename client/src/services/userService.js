@@ -1,26 +1,23 @@
-const KEY = "citylink_users";
+import axios from "axios";
 
-export async function fetchUsers() {
-  return JSON.parse(localStorage.getItem("citylink_users") || "[]");
-}
+const API_URL = "http://localhost:5000/api/users";
 
-export function saveUsers(users) {
-  localStorage.setItem(KEY, JSON.stringify(users));
-  return users;
-}
+export const fetchUsers = async () => {
+  const res = await axios.get(API_URL);
+  return res.data;
+};
 
-export function updateUser(id, updatedFields) {
-  const list = fetchUsers();
-  const updated = list.map(user =>
-    user.id === id ? { ...user, ...updatedFields } : user
-  );
-  saveUsers(updated);
-  return updated;
-}
+export const createUser = async (user) => {
+  const res = await axios.post(API_URL, user);
+  return res.data;
+};
 
-export function deleteUser(id) {
-  const list = fetchUsers();
-  const updated = list.filter(user => user.id !== id);
-  saveUsers(updated);
-  return updated;
-}
+export const updateUser = async (id, user) => {
+  const res = await axios.put(`${API_URL}/${id}`, user);
+  return res.data;
+};
+
+export const deleteUser = async (id) => {
+  const res = await axios.delete(`${API_URL}/${id}`);
+  return res.data;
+};
