@@ -1,0 +1,166 @@
+CITYLINK PROJECT – SERVER SETUP INSTRUCTIONS
+
+This project uses:
+- Node.js (Express)
+- MongoDB (NoSQL database)
+
+Follow these steps to run the backend server.
+
+--------------------------------------------------
+
+1. INSTALL REQUIREMENTS
+
+Make sure you have installed:
+
+1. Node.js
+Download: https://nodejs.org
+
+2. MongoDB (Community Server)
+Download: https://www.mongodb.com/try/download/community
+
+(Optional but recommended)
+3. MongoDB Compass (GUI to view database)
+Download: https://www.mongodb.com/try/download/compass
+
+--------------------------------------------------
+
+2. START MONGODB
+
+After installing MongoDB:
+
+- It usually runs automatically as a service
+- If not, start it manually
+
+Default connection:
+mongodb://127.0.0.1:27017
+
+--------------------------------------------------
+
+3. OPEN PROJECT
+
+Open terminal (Command Prompt or VS Code terminal)
+
+Go to project folder:
+
+cd CityWebSite-1
+
+--------------------------------------------------
+
+4. INSTALL SERVER DEPENDENCIES
+
+Go to server folder:
+
+cd server
+
+Run:
+
+npm install
+
+This installs:
+- express
+- mongoose
+- cors
+- dotenv
+- bcryptjs
+- jsonwebtoken
+
+--------------------------------------------------
+
+5. CHECK .ENV FILE
+
+Inside the server folder, create or check:
+
+.env
+
+It must contain:
+
+PORT=5000
+MONGO_URI=mongodb://127.0.0.1:27017/citylink_db
+JWT_SECRET=citylink_secret_key
+
+--------------------------------------------------
+
+6. RUN SERVER
+
+Start backend server:
+
+npx nodemon server.js
+
+OR:
+
+node server.js
+
+You should see:
+
+MongoDB connected
+Server running on port 5000
+
+--------------------------------------------------
+
+7. TEST SERVER
+
+Open browser:
+
+http://localhost:5000
+
+You should see:
+
+CityLink server is working
+
+Test API:
+
+http://localhost:5000/api/events
+http://localhost:5000/api/users
+
+--------------------------------------------------
+
+8. RUN FRONTEND (SEPARATE TERMINAL)
+
+Open NEW terminal:
+
+cd client
+
+Install dependencies (first time only):
+
+npm install
+
+Run app:
+
+npm run dev
+
+Open:
+
+http://localhost:5173
+
+--------------------------------------------------
+
+9. IMPORTANT
+
+You must run BOTH:
+
+Terminal 1:
+server → backend
+
+Terminal 2:
+client → frontend
+
+--------------------------------------------------
+
+10. DATABASE
+
+Database name:
+citylink_db
+
+Collections:
+- users
+- events
+- announcements (later)
+- bookings (later)
+- feedback (later)
+
+View database using MongoDB Compass:
+mongodb://127.0.0.1:27017
+
+--------------------------------------------------
+
+END
