@@ -4,7 +4,7 @@ import background from "./img/cityview.png"
 export default function Home() {
   return (
     <main 
-      className="relative w-full min-h-screen flex items-center justify-center bg-center bg-cover" 
+      className="relative w-full min-h-screen flex items-center justify-center bg-center bg-cover overflow-hidden" 
       style={{ backgroundImage: `url(${background})`}}  >
       <div className="absolute inset-0 bg-black/50"/>
       <div className="relative z-10 text-center px-4 max-w-6xl mx-auto">

@@ -5,7 +5,7 @@ import { XMLParser } from "fast-xml-parser";
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "@_",
-  isArray: (name) => ["item", "faq", "announcement", "category"].includes(name),
+  isArray: (name) => ["item", "faq", "announcement", "category", "event"].includes(name),
 });
 
 export async function fetchXML(filename) {
