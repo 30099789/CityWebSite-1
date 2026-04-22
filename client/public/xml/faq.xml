@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<faq>
+
+  <!-- ═══════════════════════════════════════════
+       CityLink Smart Community Portal — FAQ
+       12 questions across 4 categories
+       Parsed by fast-xml-parser v5
+       ═══════════════════════════════════════════ -->
+
+  <!-- CATEGORY 1: About the Portal -->
+  <category id="about" label="About the Portal">
+
+    <question id="faq-001">
+      <q>What is the CityLink Smart Community Portal?</q>
+      <a>The CityLink Smart Community Portal is a digital platform provided by CityLink Initiatives to help community members access local government services online. You can browse community events, read announcements, submit feedback, book services, and manage your profile — all in one place.</a>
+    </question>
+
+    <question id="faq-002">
+      <q>Who can use the portal?</q>
+      <a>The portal is available to all community members. You can browse public content such as announcements and events without an account. To book events, submit feedback, or access your profile, you will need to register for a free account using your email address.</a>
+    </question>
+
+    <question id="faq-003">
+      <q>Is the portal free to use?</q>
+      <a>Yes — the portal is completely free for all community members. There are no subscription fees or charges for using any public-facing features. Some specific service bookings may have associated costs, which will be clearly displayed before you confirm any booking.</a>
+    </question>
+
+  </category>
+
+  <!-- CATEGORY 2: Account and Profile -->
+  <category id="account" label="Account and Profile">
+
+    <question id="faq-004">
+      <q>How do I create an account?</q>
+      <a>Click the "Sign Up" button in the top navigation bar. Fill in your full name, email address, and a password. You will receive a confirmation email — click the link in that email to verify your account. Once verified, you can log in and start using all portal features.</a>
+    </question>
+
+    <question id="faq-005">
+      <q>I forgot my password. How do I reset it?</q>
+      <a>Click "Log In" in the navigation bar, then select "Forgot Password?" on the login page. Enter the email address associated with your account and we will send you a secure password reset link. The link expires after 24 hours for security reasons.</a>
+    </question>
+
+    <question id="faq-006">
+      <q>How do I update my profile information?</q>
+      <a>Log in to your account and click your name in the top navigation bar, then select "My Profile." From your profile page you can update your display name, contact preferences, and notification settings. Changes are saved automatically when you click "Save Profile."</a>
+    </question>
+
+  </category>
+
+  <!-- CATEGORY 3: Events and Bookings -->
+  <category id="events" label="Events and Bookings">
+
+    <question id="faq-007">
+      <q>How do I book a community event?</q>
+      <a>Navigate to the Events page from the main navigation menu. Browse the available events and click on one you are interested in to see full details including date, time, location, and available spots. Click "Book Now" to reserve your place. You must be logged in to make a booking.</a>
+    </question>
+
+    <question id="faq-008">
+      <q>Can I cancel or change my booking?</q>
+      <a>Yes. Log in and go to "My Profile," then navigate to the "My Bookings" section. You will see all your upcoming bookings. Click "Cancel Booking" next to the event you wish to cancel. Please note that cancellations less than 24 hours before an event may not be eligible for a refund if a fee was charged.</a>
+    </question>
+
+    <question id="faq-009">
+      <q>How will I know if an event I want to attend is full?</q>
+      <a>Each event listing clearly displays the number of available spots remaining. If an event is fully booked, the "Book Now" button will be replaced with a "Fully Booked" notice. You can still view the event details and check back later — cancellations sometimes free up spots before the event date.</a>
+    </question>
+
+  </category>
+
+  <!-- CATEGORY 4: Privacy and Accessibility -->
+  <category id="privacy-access" label="Privacy and Accessibility">
+
+    <question id="faq-010">
+      <q>How does CityLink protect my personal information?</q>
+      <a>CityLink Initiatives handles all personal information in accordance with the Australian Privacy Principles (APPs) under the Privacy Act 1988. We only collect information necessary to provide our services, store it securely, and never sell it to third parties. You can read our full Privacy Policy for detailed information.</a>
+    </question>
+
+    <question id="faq-011">
+      <q>Is the portal accessible to people with disabilities?</q>
+      <a>Yes. The CityLink portal is designed to meet WCAG 2.1 Level AA accessibility standards. This includes keyboard navigation support, screen reader compatibility, sufficient colour contrast, and descriptive alternative text for images. If you experience any accessibility barriers, please contact us through the Contact page so we can assist you.</a>
+    </question>
+
+    <question id="faq-012">
+      <q>Which browsers and devices does the portal support?</q>
+      <a>The portal is compatible with all major modern browsers including Google Chrome, Mozilla Firefox, Safari, and Microsoft Edge (latest two versions). It is fully responsive and works on desktops, laptops, tablets, and smartphones. If you experience any display issues, please try clearing your browser cache or updating to the latest browser version.</a>
+    </question>
+
+  </category>
+
+</faq>

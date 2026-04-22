@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<events>
+
+  <event id="e1">
+    <title>Community Clean-Up Day</title>
+    <date>3 May 2026</date>
+    <time>8:00 AM</time>
+    <location>Riverside Park, CityLink</location>
+    <category>Community</category>
+    <status>Upcoming</status>
+    <capacity>80</capacity>
+    <booked>47</booked>
+    <description>Join your neighbours for our quarterly community clean-up day. Gloves, bags, and refreshments provided. All ages welcome.</description>
+    <organiser>CityLink Environment Team</organiser>
+  </event>
+
+  <event id="e2">
+    <title>Council Budget Information Session</title>
+    <date>7 May 2026</date>
+    <time>6:30 PM</time>
+    <location>CityLink Town Hall, Council Chambers</location>
+    <category>Council</category>
+    <status>Upcoming</status>
+    <capacity>120</capacity>
+    <booked>63</booked>
+    <description>Councillors will present the proposed 2026/27 budget and answer community questions. Light refreshments provided.</description>
+    <organiser>CityLink Council</organiser>
+  </event>
+
+  <event id="e3">
+    <title>Digital Skills Workshop — Seniors</title>
+    <date>8 May 2026</date>
+    <time>10:00 AM</time>
+    <location>CityLink Library, Meeting Room 1</location>
+    <category>Education</category>
+    <status>Upcoming</status>
+    <capacity>20</capacity>
+    <booked>20</booked>
+    <description>A hands-on workshop to help seniors use smartphones, video calls, and online services. Devices provided. Book early — limited spots.</description>
+    <organiser>CityLink Library Services</organiser>
+  </event>
+
+  <event id="e4">
+    <title>CityLink Farmers Market</title>
+    <date>10 May 2026</date>
+    <time>7:00 AM</time>
+    <location>Civic Square, CityLink CBD</location>
+    <category>Market</category>
+    <status>Upcoming</status>
+    <capacity>500</capacity>
+    <booked>180</booked>
+    <description>Browse fresh local produce, artisan goods, and handmade crafts from over 60 local vendors. Free entry, open to all.</description>
+    <organiser>CityLink Community Events</organiser>
+  </event>
+
+  <event id="e5">
+    <title>Youth Leadership Forum</title>
+    <date>14 May 2026</date>
+    <time>9:00 AM</time>
+    <location>CityLink Community Centre, Hall A</location>
+    <category>Community</category>
+    <status>Upcoming</status>
+    <capacity>60</capacity>
+    <booked>38</booked>
+    <description>A full-day forum for young people aged 15–25 to connect with local leaders, develop skills, and shape the future of CityLink.</description>
+    <organiser>CityLink Youth Services</organiser>
+  </event>
+
+  <event id="e6">
+    <title>First Aid Essentials Course</title>
+    <date>17 May 2026</date>
+    <time>9:00 AM</time>
+    <location>CityLink Community Centre, Room 3</location>
+    <category>Education</category>
+    <status>Upcoming</status>
+    <capacity>25</capacity>
+    <booked>11</booked>
+    <description>Learn CPR, wound care, and emergency response basics in this half-day certified first aid course run by St John Ambulance.</description>
+    <organiser>St John Ambulance (CityLink Chapter)</organiser>
+  </event>
+
+  <event id="e7">
+    <title>ANZAC Day Dawn Service</title>
+    <date>25 Apr 2026</date>
+    <time>5:45 AM</time>
+    <location>CityLink War Memorial, Anzac Avenue</location>
+    <category>Community</category>
+    <status>Completed</status>
+    <capacity>1000</capacity>
+    <booked>1000</booked>
+    <description>Annual ANZAC Day Dawn Service to honour the service and sacrifice of Australian and New Zealand armed forces. All welcome.</description>
+    <organiser>CityLink RSL</organiser>
+  </event>
+
+</events>
