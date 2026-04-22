@@ -9,7 +9,7 @@ export default function Home() {
       <div className="absolute inset-0 bg-black/50"/>
       <div className="relative z-10 text-center px-4 max-w-6xl mx-auto">
         {/* Hero Section */}
-        <section className="mb-20">
+        <section className="mb-20 bg-black/75 p-10 rounded-lg "> 
         <h1 className="text-5xl md:text-6xl font-bold text-blue-500 mb-3">
           Smart Community Portal
         </h1>

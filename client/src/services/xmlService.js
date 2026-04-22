@@ -39,3 +39,11 @@ export async function getAnnouncementsXML() {
   // Ensure always an array
   return Array.isArray(items) ? items : [items];
 }
+
+export async function getEventsXML() {
+  const data = await fetchXML("events.xml");
+  const items = data?.events?.event ?? [];
+  // Ensure always an array
+  return Array.isArray(items) ? items : [items];
+}
+

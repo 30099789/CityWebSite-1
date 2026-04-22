@@ -70,15 +70,6 @@ export default function Events() {
           </section>
         )}
       </section>
-      {events.length === 0 ? (
-        <p className="text-slate-400">No events available at the moment.</p>
-      ) : (
-        <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {events.map((evt) => (
-            <EventCard key={evt.id} evt={evt} />
-          ))}
-        </section>
-      )}
     </main>
   );
 }
