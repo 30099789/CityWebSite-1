@@ -1,0 +1,73 @@
+s<xml? version="1.0" encoding="UTF-8"?>
+<services>
+
+  <!-- ═══════════════════════════════════════════
+       CityLink Smart Community Portal
+       Services — Seed Data
+       Parsed by fast-xml-parser v5
+       ═══════════════════════════════════════════ -->
+
+  <item id="svc-001">
+    <title>Waste Collection</title>
+    <description>Regular waste and recycling collection services for residential properties within the CityLink area.</description>
+    <category>Environmental Services</category>
+    <contact>
+      <phone>1800 123 456</phone>
+      <email>info@citylink.gov.au</email>
+    </contact>
+  </item>
+  <item id="svc-002">
+    <title>Public Transport</title>
+    <description>Bus and train services connecting the CityLink area to surrounding suburbs and the city center.</description>
+    <category>Transportation</category>
+    <contact>
+      <phone>1800 123 001</phone>
+      <email>transport@citylink.gov.au</email>
+    </contact>
+  </item>
+    <item id="svc-003">
+        <title>Community Events</title>
+        <description>Organizing and hosting community events, workshops, and activities for residents of all ages.</description>
+        <category>Community Services</category>
+        <contact>
+        <phone>1800 123 002</phone>
+        <email>info@citylink.gov.au</email>
+        </contact>
+    </item>
+    <item id="svc-004">
+        <title>Library Services</title>
+        <description>Access to books, digital resources, and community programs at the CityLink Public Library.</description>
+        <category>Educational Services</category>
+        <contact>
+        <phone>1800 123 003</phone>
+        <email>educational_secretary@citylink.gov.au</email>
+        </contact>
+    </item> 
+    <item id="svc-005">
+        <title>Recreational Facilities</title>
+        <description>Maintenance and access to parks, sports fields, and recreational centers within the CityLink area.</description>
+        <category>Recreational Services</category>
+        <contact>
+        <phone>1800 123 004</phone>
+        <email>environment_secretarian@citylink.gov.au</email>
+        </contact>
+    </item> 
+    <item id="svc-006">
+        <title>Health Services</title>
+        <description>Access to local clinics, health programs, and wellness initiatives for CityLink residents.</description>
+        <category>Health Services</category>
+        <contact>
+        <phone>1800 132 006</phone>
+        <email>healthcare@citylink.gov.au</email>
+        </contact>
+    </item>
+    <item id="svc-007">
+        <title>Emergency Services</title>
+        <description>Coordination with local police, fire, and ambulance services to ensure community safety.</description>
+        <category>Emergency Services</category>
+        <contact>
+        <phone>000</phone>
+        <email>emergency@citylink.gov.au</email>
+        </contact>
+    </item>
+</services>

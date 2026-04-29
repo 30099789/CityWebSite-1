@@ -5,7 +5,7 @@ import { getEvents } from "../data/mockData";
 
 export default function Events() {
   const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
   const [source, setSource] = useState("xml");
 
   useEffect(() => {
@@ -57,5 +57,35 @@ export default function Events() {
         )}
       </section>
     </main>
+  );
+}
+function EventCard({ evt }) {
+  return (
+    <div className="bg-white rounded-lg shadow-md p-5 flex flex-col">
+      <h2 className="text-xl font-semibold text-slate-800 mb-2">{evt.title}</h2>
+      <p className="text-slate-600 text-sm flex-grow mb-5">
+        {evt.description}
+      </p>
+      <p className="text-slate-500 text-sm mb-1">
+        <strong>Date:</strong> {evt.date}
+      </p>
+      <p className="text-slate-500 text-sm mb-3">
+        <strong>Time:</strong> {evt.time}
+      </p>
+      <p className="text-slate-500 text-sm mb-5">
+        <strong>Location:</strong> {evt.location}
+      </p>
+      <p className="text-slate-500 text-sm mb-5">
+        <strong>Category: </strong> {evt.category}
+      </p>
+      <p className="text-slate-500 text-sm mb-5">
+        <strong>Status:</strong> {evt.status}
+      </p>
+      <Link
+        to={`/events/${evt.id}`}
+        className="mt-auto inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm">
+        Click to View Details
+      </Link>
+    </div>
   );
 }

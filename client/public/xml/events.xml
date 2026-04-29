@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <events>
 
-  <event id="e1">
+  <event id="evt1">
     <title>Community Clean-Up Day</title>
     <date>3 May 2026</date>
     <time>8:00 AM</time>
@@ -14,7 +14,7 @@
     <organiser>CityLink Environment Team</organiser>
   </event>
 
-  <event id="e2">
+  <event id="evt2">
     <title>Council Budget Information Session</title>
     <date>7 May 2026</date>
     <time>6:30 PM</time>
@@ -27,7 +27,7 @@
     <organiser>CityLink Council</organiser>
   </event>
 
-  <event id="e3">
+  <event id="evt3">
     <title>Digital Skills Workshop — Seniors</title>
     <date>8 May 2026</date>
     <time>10:00 AM</time>
@@ -40,7 +40,7 @@
     <organiser>CityLink Library Services</organiser>
   </event>
 
-  <event id="e4">
+  <event id="evt4">
     <title>CityLink Farmers Market</title>
     <date>10 May 2026</date>
     <time>7:00 AM</time>
@@ -53,7 +53,7 @@
     <organiser>CityLink Community Events</organiser>
   </event>
 
-  <event id="e5">
+  <event id="evt5">
     <title>Youth Leadership Forum</title>
     <date>14 May 2026</date>
     <time>9:00 AM</time>
@@ -66,7 +66,7 @@
     <organiser>CityLink Youth Services</organiser>
   </event>
 
-  <event id="e6">
+  <event id="evt6">
     <title>First Aid Essentials Course</title>
     <date>17 May 2026</date>
     <time>9:00 AM</time>
@@ -79,7 +79,7 @@
     <organiser>St John Ambulance (CityLink Chapter)</organiser>
   </event>
 
-  <event id="e7">
+  <event id="evt7">
     <title>ANZAC Day Dawn Service</title>
     <date>25 Apr 2026</date>
     <time>5:45 AM</time>
