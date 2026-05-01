@@ -3,37 +3,37 @@ import background from "./img/cityview.png";
 
 export default function Home() {
   return (
-    <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
-      <section
-        className="relative min-h-screen bg-center bg-cover flex items-center justify-center"
-        style={{ backgroundImage: `url(${background})` }}
-      >
-        <div className="absolute inset-0 bg-black/50" />
+    <main
+      className="relative w-full min-h-screen flex items-center justify-center bg-center bg-cover overflow-hidden"
+      style={{ backgroundImage: `url(${background})` }}
+    >
+      <div className="absolute inset-0 bg-black/50" />
 
-        <div className="relative z-10 w-full px-4 md:px-6">
-          <div className="max-w-6xl mx-auto text-center">
-            <div className="mb-16 md:mb-20">
-              <h1 className="text-4xl md:text-6xl font-bold text-blue-500 mb-4">
-                Smart Community Portal
-              </h1>
+      <div className="relative z-10 text-center px-4 max-w-6xl mx-auto">
+        <section className="mb-20 bg-black/75 p-10 rounded-lg">
+          <h1 className="text-5xl md:text-6xl font-bold text-blue-500 mb-3">
+            Smart Community Portal
+          </h1>
 
-              <p className="text-white text-base md:text-lg max-w-4xl mx-auto">
-                Welcome to CityLink Initiatives. Access events, announcements,
-                services and community feedback in one place.
-              </p>
-            </div>
+          <p className="text-white text-lg max-w-4xl mx-auto">
+            Welcome to CityLink Initiatives.
+          </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
-              <Card title="Services" link="/services" />
-              <Card title="Events" link="/events" />
-              <Card title="Announcements" link="/announcements" />
-              <Card title="Feedback" link="/feedback" />
-              <Card title="Contact" link="/contact" />
-            </div>
+          <p className="text-white text-lg max-w-4xl mx-auto mb-8">
+            Access events, announcements, services and community feedback in one
+            place.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 max-w-5xl mx-auto">
+            <Card title="Services" link="/services" />
+            <Card title="Events" link="/events" />
+            <Card title="Announcements" link="/announcements" />
+            <Card title="Feedback" link="/feedback" />
+            <Card title="Contact" link="/contact" />
           </div>
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
+    </main>
   );
 }
 
