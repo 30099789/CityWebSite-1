@@ -14,20 +14,17 @@ const serviceRequestsRouter = require("./routes/serviceRequestsRouter");
 const xmlRouter             = require("./routes/xmlRouter");
 const feedbackRouter        = require("./routes/feedbackRouter");
 const contactRouter         = require("./routes/contactRouter");
+const chatRouter            = require("./routes/chatRouter");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-
-// Sanitize all incoming request bodies (strips XSS/script injection)
 app.use(sanitize);
 
-// Static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/images",  express.static(path.join(__dirname, "../client/public/images")));
 
-// Routes
 app.use("/api/services",         servicesRouter);
 app.use("/api/announcements",    announcementsRouter);
 app.use("/api/events",           eventRoutes);
@@ -37,6 +34,7 @@ app.use("/api/service-requests", serviceRequestsRouter);
 app.use("/api/xml",              xmlRouter);
 app.use("/api/feedback",         feedbackRouter);
 app.use("/api/contact",          contactRouter);
+app.use("/api/chat",             chatRouter);
 
 app.get("/", (req, res) => res.send("CityLink backend is running"));
 
