@@ -29,6 +29,10 @@ const serviceSchema = new mongoose.Schema(
         match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Invalid email"],
       },
     },
+    imageUrl: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,

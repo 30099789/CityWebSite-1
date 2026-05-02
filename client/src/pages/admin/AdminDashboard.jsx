@@ -8,6 +8,7 @@ import { fetchBookings } from "../../services/bookingService";
 import { fetchUsers } from "../../services/userService";
 import { getEvents, getBookings, getFeedback, getAnnouncements, getUsers,
   saveEvents, saveAnnouncements, saveFeedback, saveBookings } from "../../data/mockData";
+import Logo from "../../components/Logo";
 
 /* ── ICONS ─────────────────────────────────────────────────────────────────── */
 const I = ({ d, cls = "w-5 h-5" }) => (
@@ -204,15 +205,7 @@ export default function AdminDashboard() {
       <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           {/* Logo */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-700 flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-xs font-bold">CL</span>
-            </div>
-            <div className="leading-tight">
-              <p className="text-sm font-bold text-blue-800">CityLink Initiatives</p>
-              <p className="text-xs text-slate-400">Smart Community Portal</p>
-            </div>
-          </div>
+          <Logo variant="compact" />
 
           {/* Nav links */}
           <nav className="hidden lg:flex items-center gap-1 text-sm">

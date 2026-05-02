@@ -14,7 +14,7 @@ const announcementSchema = new mongoose.Schema(
     },
     content: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
     },
     priority: {
@@ -33,18 +33,22 @@ const announcementSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
     },
     audience: {
       type: String,
-      required: true,
+      default: "All",
       trim: true,
     },
     author: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
+    },
+    imageUrl: {
+      type: String,
+      default: "",
     },
   },
   {

@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import Logo from "../components/Logo";
 
 export default function Signup() {
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
+  const [form, setForm]     = useState({ name: "", email: "", password: "", confirm: "" });
   const [agreed, setAgreed] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError]   = useState("");
   const [loading, setLoading] = useState(false);
 
   function update(field, val) { setForm((f) => ({ ...f, [field]: val })); }
@@ -40,17 +41,13 @@ export default function Signup() {
   return (
     <main className="min-h-screen bg-slate-100 flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
-        <Link to="/" className="inline-flex items-center gap-1 mb-5 text-sm font-medium text-blue-600 hover:underline">
+        <Link to="/" className="inline-flex items-center gap-1 mb-5 text-sm font-medium text-slate-500 hover:text-slate-900 transition">
           ← Back to Home
         </Link>
 
-        <div className="rounded-3xl bg-white shadow-xl border border-gray-100 p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-10 w-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-sm">CL</div>
-            <div>
-              <div className="font-semibold text-slate-900 leading-tight">CityLink Initiatives</div>
-              <div className="text-xs text-slate-400 leading-tight">Smart Community Portal</div>
-            </div>
+        <div className="rounded-3xl bg-white shadow-xl border border-slate-100 p-8">
+          <div className="mb-6">
+            <Logo variant="compact" />
           </div>
 
           <h1 className="text-2xl font-bold text-slate-900 mb-1">Create account</h1>
@@ -63,40 +60,43 @@ export default function Signup() {
           </div>
 
           {error && (
-            <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+            <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600" role="alert">
               {error}
             </div>
           )}
 
           <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-semibold text-slate-800 mb-1.5">First name</label>
-                <input type="text" placeholder="Kate" value={form.name.split(" ")[0] || ""} onChange={(e) => update("name", e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-900" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-800 mb-1.5">Last name</label>
-                <input type="text" placeholder="Smith" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-900" />
-              </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-800 mb-1.5">Full Name</label>
+              <input type="text" placeholder="Kate Smith" value={form.name}
+                onChange={(e) => update("name", e.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-900" />
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-slate-800 mb-1.5">Email</label>
-              <input type="email" placeholder="you@email.com" value={form.email} onChange={(e) => update("email", e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-900" />
+              <input type="email" placeholder="you@email.com" value={form.email}
+                onChange={(e) => update("email", e.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-900" />
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-slate-800 mb-1.5">Password</label>
-              <input type="password" placeholder="Minimum 6 characters" value={form.password} onChange={(e) => update("password", e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-900" />
+              <input type="password" placeholder="Minimum 6 characters" value={form.password}
+                onChange={(e) => update("password", e.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-900" />
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-slate-800 mb-1.5">Confirm password</label>
-              <input type="password" placeholder="Repeat password" value={form.confirm} onChange={(e) => update("confirm", e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-900" />
+              <input type="password" placeholder="Repeat password" value={form.confirm}
+                onChange={(e) => update("confirm", e.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-900" />
             </div>
 
             <label className="flex items-start gap-3 cursor-pointer">
-              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-slate-300" />
+              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300" />
               <span className="text-sm text-slate-600">
                 I agree to the{" "}
                 <Link to="/terms" className="text-blue-600 hover:underline">Terms of Service</Link>
@@ -105,11 +105,8 @@ export default function Signup() {
               </span>
             </label>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-2xl bg-slate-900 text-white py-3 text-sm font-semibold hover:bg-slate-700 transition disabled:opacity-50"
-            >
+            <button type="submit" disabled={loading}
+              className="w-full rounded-2xl bg-slate-900 text-white py-3 text-sm font-semibold hover:bg-slate-700 transition disabled:opacity-50">
               {loading ? "Creating account…" : "Create account"}
             </button>
           </form>
@@ -123,4 +120,4 @@ export default function Signup() {
       </div>
     </main>
   );
-}``
+}

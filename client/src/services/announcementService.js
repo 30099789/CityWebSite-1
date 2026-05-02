@@ -1,44 +1,36 @@
-const KEY = "citylink_announcements";
+// announcementService.js — Sprint 3 Week 8: all calls hit the real MongoDB API
+import BASE_URL from "./api";
+
+const URL = `${BASE_URL}/announcements`;
 
 export async function fetchAnnouncements() {
-  return JSON.parse(localStorage.getItem(KEY) || "[]");
+  const res = await fetch(URL);
+  if (!res.ok) throw new Error("Failed to fetch announcements");
+  return res.json();
 }
 
-export function saveAnnouncements(announcements) {
-  localStorage.setItem(KEY, JSON.stringify(announcements));
-  return announcements;
+export async function createAnnouncement(data) {
+  const res = await fetch(URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create announcement");
+  return res.json();
 }
 
-export function addAnnouncement(newAnnouncement) {
-  const list = JSON.parse(localStorage.getItem(KEY) || "[]");
-
-  const announcement = {
-    id: Date.now(),
-    ...newAnnouncement,
-  };
-
-  const updated = [announcement, ...list];
-  localStorage.setItem(KEY, JSON.stringify(updated));
-
-  return updated;
+export async function updateAnnouncement(id, data) {
+  const res = await fetch(`${URL}/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update announcement");
+  return res.json();
 }
 
-export function updateAnnouncement(id, updatedFields) {
-  const list = JSON.parse(localStorage.getItem(KEY) || "[]");
-
-  const updated = list.map(item =>
-    item.id === id ? { ...item, ...updatedFields } : item
-  );
-
-  localStorage.setItem(KEY, JSON.stringify(updated));
-  return updated;
-}
-
-export function deleteAnnouncement(id) {
-  const list = JSON.parse(localStorage.getItem(KEY) || "[]");
-
-  const updated = list.filter(item => item.id !== id);
-
-  localStorage.setItem(KEY, JSON.stringify(updated));
-  return updated;
+export async function deleteAnnouncement(id) {
+  const res = await fetch(`${URL}/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete announcement");
+  return res.json();
 }

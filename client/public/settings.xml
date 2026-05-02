@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       CityLink Smart Community Portal — App-Wide Settings
+       Read on page load by xmlService.js → useSettings hook
+       Edit this file to update site-wide content without code changes
+       Week 10 XML requirement: App-wide settings stored in XML
+       ═══════════════════════════════════════════════════════════ -->
+
+  <!-- Site identity -->
+  <site>
+    <name>CityLink Initiatives</name>
+    <tagline>Smart Community Portal</tagline>
+    <description>Connecting our community with accessible digital services.</description>
+    <logo>CL</logo>
+    <contactEmail>info@citylink.gov</contactEmail>
+    <contactPhone>(08) 9000 0000</contactPhone>
+    <address>123 Council Street, Perth WA 6000</address>
+  </site>
+
+  <!-- Footer settings -->
+  <footer>
+    <acknowledgement>CityLink Initiatives acknowledges the Traditional Custodians of the land on which we operate and pays respect to Elders past and present. We celebrate the continuing traditions and living culture of Aboriginal and Torres Strait Islander peoples.</acknowledgement>
+    <copyright>CityLink Initiatives. All rights reserved. WCAG 2.1 AA Compliant.</copyright>
+  </footer>
+
+  <!-- Feature flags — set to "true" or "false" to toggle features site-wide -->
+  <features>
+    <bookingsEnabled>true</bookingsEnabled>
+    <feedbackEnabled>true</feedbackEnabled>
+    <chatbotEnabled>false</chatbotEnabled>
+    <maintenanceMode>false</maintenanceMode>
+    <maintenanceMessage>The portal is currently undergoing scheduled maintenance. Please check back shortly.</maintenanceMessage>
+  </features>
+
+  <!-- Alert banner — shown at top of every page when active -->
+  <banner>
+    <active>false</active>
+    <message>Important: The portal will be offline for maintenance on Saturday 10 May from 2:00 AM – 4:00 AM AWST.</message>
+    <type>warning</type>
+  </banner>
+
+</settings>
