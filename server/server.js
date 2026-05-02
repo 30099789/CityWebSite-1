@@ -19,6 +19,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/images", express.static(path.join(__dirname, "../client/public/images")));
 
 app.use("/api/services",         servicesRouter);
 app.use("/api/announcements",    announcementsRouter);

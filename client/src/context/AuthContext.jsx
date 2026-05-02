@@ -89,8 +89,23 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+
+  async function updateUser(fields) {
+    try {
+      if (user?.id) {
+        await fetch(`${BASE_URL}/users/${user.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(fields),
+        });
+      }
+    } catch {}
+    const updated = { ...user, ...fields };
+    localStorage.setItem("citylink_user", JSON.stringify(updated));
+    setUser(updated);
+  }
   return (
-    <AuthContext.Provider value={{ user, login, logout, register }}>
+    <AuthContext.Provider value={{ user, login, logout, register, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
@@ -113,6 +128,30 @@ export function RequireAdmin({ children }) {
           <p className="text-slate-500 text-sm mb-6">You must be signed in as an admin or staff member to view this page.</p>
           <Link to="/login" className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-700 transition">
             Go to Login
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  return children;
+}
+
+// Blocks staff — only admin can access
+export function RequireAdminOnly({ children }) {
+  const { user } = useAuth();
+  if (!user || user.role !== "admin") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+        <div className="text-center p-8 max-w-sm">
+          <div className="w-14 h-14 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center mx-auto mb-5">
+            <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-slate-900 mb-2">Admin Only</h1>
+          <p className="text-slate-500 text-sm mb-6">You need administrator access to view this page. Staff accounts do not have permission.</p>
+          <Link to="/admin" className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-700 transition">
+            Back to Dashboard
           </Link>
         </div>
       </div>
