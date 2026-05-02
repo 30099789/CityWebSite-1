@@ -1,14 +1,11 @@
-// AuthContext.jsx — Sprint 3 Week 11
-// Login: tries real API first, falls back to hardcoded admin credentials
-// Register: POSTs to real API
+// AuthContext.jsx — Sprint 3 (JWT auth)
 import { createContext, useContext, useState } from "react";
 import { Link } from "react-router-dom";
 
 const AuthContext = createContext(null);
+const BASE_URL    = "http://localhost:5000/api";
 
-const BASE_URL = "http://localhost:5000/api";
-
-// Hardcoded admin/staff — always work even if DB is down
+// Hardcoded admin fallback — works even if DB is down
 const ADMIN_CREDENTIALS = [
   { email: "admin@citylink.gov", password: "admin123", role: "admin", name: "Admin User" },
   { email: "staff@citylink.gov", password: "staff123", role: "staff", name: "Staff Member" },
@@ -21,6 +18,20 @@ function getStoredUser() {
   } catch { return null; }
 }
 
+// ── API helper — automatically attaches JWT token ──────────────────────────────
+export function authFetch(url, options = {}) {
+  const user = getStoredUser();
+  const token = user?.token;
+  return fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  });
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(getStoredUser);
 
@@ -30,7 +41,8 @@ export function AuthProvider({ children }) {
       (c) => c.email === email && c.password === password
     );
     if (admin) {
-      const u = { email: admin.email, role: admin.role, name: admin.name };
+      // Generate a simple token for hardcoded admins
+      const u = { email: admin.email, role: admin.role, name: admin.name, token: "hardcoded-admin-token" };
       localStorage.setItem("citylink_user", JSON.stringify(u));
       setUser(u);
       return { success: true, role: admin.role };
@@ -38,10 +50,10 @@ export function AuthProvider({ children }) {
 
     // 2. Try real API
     try {
-      const res = await fetch(`${BASE_URL}/users/login`, {
-        method: "POST",
+      const res  = await fetch(`${BASE_URL}/users/login`, {
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body:    JSON.stringify({ email, password }),
       });
       const data = await res.json();
       if (!res.ok) return { success: false, error: data.message || "Invalid email or password." };
@@ -51,6 +63,7 @@ export function AuthProvider({ children }) {
         email: data.email,
         name:  data.name,
         role:  data.role || "resident",
+        token: data.token, // ← JWT token stored here
       };
       localStorage.setItem("citylink_user", JSON.stringify(u));
       setUser(u);
@@ -62,10 +75,10 @@ export function AuthProvider({ children }) {
 
   async function register(name, email, password) {
     try {
-      const res = await fetch(`${BASE_URL}/users/register`, {
-        method: "POST",
+      const res  = await fetch(`${BASE_URL}/users/register`, {
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body:    JSON.stringify({ name, email, password }),
       });
       const data = await res.json();
       if (!res.ok) return { success: false, error: data.message || "Registration failed." };
@@ -75,6 +88,7 @@ export function AuthProvider({ children }) {
         email: data.email,
         name:  data.name,
         role:  data.role || "resident",
+        token: data.token,
       };
       localStorage.setItem("citylink_user", JSON.stringify(u));
       setUser(u);
@@ -89,14 +103,12 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
-
   async function updateUser(fields) {
     try {
       if (user?.id) {
-        await fetch(`${BASE_URL}/users/${user.id}`, {
+        await authFetch(`${BASE_URL}/users/${user.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(fields),
+          body:   JSON.stringify(fields),
         });
       }
     } catch {}
@@ -104,6 +116,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem("citylink_user", JSON.stringify(updated));
     setUser(updated);
   }
+
   return (
     <AuthContext.Provider value={{ user, login, logout, register, updateUser }}>
       {children}
@@ -113,6 +126,7 @@ export function AuthProvider({ children }) {
 
 export function useAuth() { return useContext(AuthContext); }
 
+// Blocks non-admin/staff
 export function RequireAdmin({ children }) {
   const { user } = useAuth();
   if (!user || (user.role !== "admin" && user.role !== "staff")) {
@@ -136,7 +150,7 @@ export function RequireAdmin({ children }) {
   return children;
 }
 
-// Blocks staff — only admin can access
+// Blocks staff — admin only
 export function RequireAdminOnly({ children }) {
   const { user } = useAuth();
   if (!user || user.role !== "admin") {
@@ -149,7 +163,7 @@ export function RequireAdminOnly({ children }) {
             </svg>
           </div>
           <h1 className="text-xl font-bold text-slate-900 mb-2">Admin Only</h1>
-          <p className="text-slate-500 text-sm mb-6">You need administrator access to view this page. Staff accounts do not have permission.</p>
+          <p className="text-slate-500 text-sm mb-6">Staff accounts do not have permission to access this page.</p>
           <Link to="/admin" className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-700 transition">
             Back to Dashboard
           </Link>

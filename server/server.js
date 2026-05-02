@@ -4,6 +4,7 @@ const cors     = require("cors");
 const path     = require("path");
 require("dotenv").config();
 
+const sanitize              = require("./middleware/sanitize");
 const servicesRouter        = require("./routes/servicesRouter");
 const announcementsRouter   = require("./routes/announcementsRouter");
 const eventRoutes           = require("./routes/eventRoutes");
@@ -18,9 +19,15 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use("/images", express.static(path.join(__dirname, "../client/public/images")));
 
+// Sanitize all incoming request bodies (strips XSS/script injection)
+app.use(sanitize);
+
+// Static files
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/images",  express.static(path.join(__dirname, "../client/public/images")));
+
+// Routes
 app.use("/api/services",         servicesRouter);
 app.use("/api/announcements",    announcementsRouter);
 app.use("/api/events",           eventRoutes);
@@ -33,14 +40,13 @@ app.use("/api/contact",          contactRouter);
 
 app.get("/", (req, res) => res.send("CityLink backend is running"));
 
-// Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: "Internal server error" });
 });
 
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(process.env.MONGO_URI || "mongodb://localhost:27017/citylink")
   .then(() => {
     console.log("MongoDB connected");
     const PORT = process.env.PORT || 5000;
