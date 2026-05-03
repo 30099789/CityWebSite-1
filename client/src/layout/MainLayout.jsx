@@ -1,4 +1,6 @@
 // MainLayout.jsx — Sprint 3 Week 10
+// XML integration: menu.xml drives nav/footer links
+// XML integration: settings.xml drives site name, footer text, banner, maintenance mode
 import { useState, useEffect } from "react";
 import { NavLink, Outlet, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -8,6 +10,7 @@ import Logo from "../components/Logo";
 import Chatbot from "../components/Chatbot";
 import AccessibilityWidget from "../components/AccessibilityWidget";
 
+// ── Fallback nav (used if menu.xml fails to load) ─────────────────────────────
 const FALLBACK_NAV = [
   { label: "Home",          path: "/", end: "true" },
   { label: "Services",      path: "/services" },
@@ -37,12 +40,13 @@ const BANNER_STYLES = {
 
 export default function MainLayout() {
   const { user, logout } = useAuth();
-  const { settings }     = useSettings();
+  const { settings }     = useSettings(); // ← XML settings loaded here
   const [menuOpen, setMenuOpen]       = useState(false);
   const [navLinks, setNavLinks]       = useState(FALLBACK_NAV);
   const [footerLinks, setFooterLinks] = useState(FALLBACK_FOOTER_LINKS);
   const [legalLinks, setLegalLinks]   = useState(FALLBACK_LEGAL_LINKS);
 
+  // Load navigation from menu.xml
   useEffect(() => {
     getMenuConfig().then((menu) => {
       if (!menu) return;
@@ -74,6 +78,7 @@ export default function MainLayout() {
 
   function close() { setMenuOpen(false); }
 
+  // Maintenance mode — show holding page if enabled in settings.xml
   if (settings.features.maintenanceMode) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
@@ -93,21 +98,25 @@ export default function MainLayout() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
 
-      {/* Banner */}
+      {/* ── Banner (from settings.xml) ─────────────────────────────────────── */}
       {settings.banner.active && settings.banner.message && (
         <div className={`border-b px-4 py-2.5 text-sm font-medium text-center ${BANNER_STYLES[settings.banner.type] || BANNER_STYLES.info}`}>
           {settings.banner.message}
         </div>
       )}
 
-      {/* Navbar */}
+      {/* ── Navbar ─────────────────────────────────────────────────────────── */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div className="mx-auto max-w-6xl px-4">
           <div className="flex h-16 items-center justify-between gap-4">
+
+            {/* Logo */}
             <Link to="/" onClick={close} className="flex-shrink-0">
               <span className="hidden sm:block"><Logo variant="compact" /></span>
               <span className="sm:hidden"><Logo variant="mark" /></span>
             </Link>
+
+            {/* Desktop nav — links from menu.xml */}
             <nav className="hidden lg:flex items-center gap-0.5 flex-1 justify-center">
               {navLinks.map(({ label, path, end }) => (
                 <NavLink key={path} to={path} end={end === "true" || end === true} className={desktopLink}>
@@ -115,6 +124,8 @@ export default function MainLayout() {
                 </NavLink>
               ))}
             </nav>
+
+            {/* Desktop auth */}
             <div className="hidden lg:flex items-center gap-2 flex-shrink-0">
               {user ? (
                 <>
@@ -138,11 +149,13 @@ export default function MainLayout() {
                 </>
               )}
             </div>
+
+            {/* Mobile hamburger */}
             <div className="flex lg:hidden items-center gap-2">
               {!user ? (
                 <Link to="/login" className="px-3 py-1.5 text-sm font-semibold text-blue-700">Log In</Link>
               ) : (user.role === "admin" || user.role === "staff") ? (
-                <Link to="/admin" onClick={close} className="px-3 py-1.5 text-sm font-semibold text-slate-700 font-bold">Admin</Link>
+                <Link to="/admin" onClick={close} className="px-3 py-1.5 text-sm font-bold text-slate-700">Admin</Link>
               ) : (
                 <Link to="/profile" onClick={close} className="px-3 py-1.5 text-sm font-semibold text-blue-700">
                   {user.name?.split(" ")[0] || "Profile"}
@@ -163,6 +176,8 @@ export default function MainLayout() {
             </div>
           </div>
         </div>
+
+        {/* Mobile dropdown */}
         {menuOpen && (
           <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-1">
             {navLinks.map(({ label, path, end }) => (
@@ -194,19 +209,23 @@ export default function MainLayout() {
         )}
       </header>
 
-      {/* Page content */}
+      {/* ── Page content ─────────────────────────────────────────────────────── */}
       <main className="flex-1 w-full">
         <Outlet />
       </main>
 
-      {/* Footer */}
+      {/* ── Footer ───────────────────────────────────────────────────────────── */}
       <footer className="bg-white border-t border-slate-200 mt-auto">
         <div className="mx-auto max-w-6xl px-4 py-10">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+
+            {/* Brand — Logo component */}
             <div className="sm:col-span-2 lg:col-span-1">
               <div className="mb-3"><Logo variant="compact" /></div>
               <p className="text-sm text-slate-500 leading-relaxed">{settings.site.description}</p>
             </div>
+
+            {/* Quick Links — from menu.xml */}
             <div>
               <p className="text-sm font-bold text-slate-900 mb-4">Quick Links</p>
               <div className="space-y-2.5">
@@ -215,6 +234,8 @@ export default function MainLayout() {
                 ))}
               </div>
             </div>
+
+            {/* Legal — from menu.xml */}
             <div>
               <p className="text-sm font-bold text-slate-900 mb-4">Legal</p>
               <div className="space-y-2.5">
@@ -223,6 +244,8 @@ export default function MainLayout() {
                 ))}
               </div>
             </div>
+
+            {/* Contact — from settings.xml */}
             <div>
               <p className="text-sm font-bold text-slate-900 mb-4">Contact Us</p>
               <div className="space-y-3">
@@ -248,15 +271,21 @@ export default function MainLayout() {
             </div>
           </div>
         </div>
+
+        {/* Footer bottom — from settings.xml */}
         <div className="border-t border-slate-200">
           <div className="mx-auto max-w-6xl px-4 py-4 text-center space-y-1.5">
-            <p className="text-xs text-slate-400 max-w-2xl mx-auto leading-relaxed">{settings.footer.acknowledgement}</p>
-            <p className="text-xs text-slate-400">© {new Date().getFullYear()} {settings.footer.copyright}</p>
+            <p className="text-xs text-slate-400 max-w-2xl mx-auto leading-relaxed">
+              {settings.footer.acknowledgement}
+            </p>
+            <p className="text-xs text-slate-400">
+              © {new Date().getFullYear()} {settings.footer.copyright}
+            </p>
           </div>
         </div>
       </footer>
 
-      {/* ── Accessibility widget (bottom left) & Chatbot (bottom right) ── */}
+      {/* Accessibility widget bottom left, Chatbot bottom right */}
       <AccessibilityWidget />
       <Chatbot />
 
