@@ -15,6 +15,8 @@ const xmlRouter             = require("./routes/xmlRouter");
 const feedbackRouter        = require("./routes/feedbackRouter");
 const contactRouter         = require("./routes/contactRouter");
 const chatRouter            = require("./routes/chatRouter");
+const uploadRouter          = require("./routes/uploadRouter");
+
 
 const app = express();
 
@@ -25,6 +27,8 @@ app.use(sanitize);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/images",  express.static(path.join(__dirname, "../client/public/images")));
 
+
+app.use("/api/upload",           uploadRouter);
 app.use("/api/services",         servicesRouter);
 app.use("/api/announcements",    announcementsRouter);
 app.use("/api/events",           eventRoutes);
