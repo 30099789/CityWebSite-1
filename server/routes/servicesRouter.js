@@ -42,7 +42,16 @@ router.get("/", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch services" });
   }
 });
-
+// GET service by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const service = await Service.findById(req.params.id);
+    if (!service) return res.status(404).json({ message: "Service not found" });
+    res.json(service);
+  } catch {
+    res.status(500).json({ message: "Failed to fetch service" });
+  }
+});
 // POST create service
 router.post("/", async (req, res) => {
   try {

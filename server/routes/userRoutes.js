@@ -56,7 +56,16 @@ router.get("/", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch users" });
   }
 });
-
+// GET user by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id, "-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch {
+    res.status(500).json({ message: "Failed to fetch user" });
+  }
+});
 // PUT update user
 router.put("/:id", async (req, res) => {
   try {

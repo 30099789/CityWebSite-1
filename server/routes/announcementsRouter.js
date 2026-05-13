@@ -13,7 +13,16 @@ router.get("/", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch announcements" });
   }
 });
-
+// GET by ID — public
+router.get("/:id", async (req, res) => {
+  try {
+    const item = await Announcement.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: "Announcement not found" });
+    res.json(item);
+  } catch {
+    res.status(500).json({ message: "Failed to fetch announcement" });
+  }
+});
 // POST — admin/staff only
 router.post("/", protect, requireAdmin, async (req, res) => {
   try {

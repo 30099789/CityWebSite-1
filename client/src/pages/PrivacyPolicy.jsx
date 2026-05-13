@@ -33,7 +33,7 @@ export default function PrivacyPolicy() {
             <li><span className="font-medium text-slate-700">Feedback submissions:</span> messages, categories, and contact details you provide</li>
             <li><span className="font-medium text-slate-700">Usage data:</span> pages visited and interactions with the Portal (non-identifiable)</li>
           </ul>
-          <p className="mt-3">
+          <p className="mt-3">  
             We only collect information that is necessary to provide our community services.
             No real personal data is used during the development and testing phase of this Portal —
             only sample mock data is used.

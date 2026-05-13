@@ -13,6 +13,17 @@ router.get("/", async (req, res) => {
   }
 });
 
+// GET feedback by ID (admin)
+router.get("/:id", async (req, res) => {
+  try {
+    const item = await Feedback.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: "Feedback not found" });
+    res.json(item);
+  } catch {
+    res.status(500).json({ message: "Failed to fetch feedback" });
+  }
+});
+
 // POST submit feedback
 router.post("/", async (req, res) => {
   try {
@@ -31,7 +42,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// PUT update feedback (admin — change status or add response)
+// PUT update feedback (admin) — for example to add admin response
 router.put("/:id", async (req, res) => {
   try {
     const updated = await Feedback.findByIdAndUpdate(req.params.id, req.body, { new: true });

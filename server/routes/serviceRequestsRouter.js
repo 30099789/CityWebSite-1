@@ -12,6 +12,17 @@ router.get("/", async (req, res) => {
   }
 });
 
+// GET service request by ID (admin)
+router.get("/:id", async (req, res) => {
+  try {
+    const request = await ServiceRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ message: "Request not found" });
+    res.json(request);
+  } catch {
+    res.status(500).json({ message: "Failed to fetch service request" });
+  }
+});
+
 // POST create service request
 router.post("/", async (req, res) => {
   try {
@@ -36,6 +47,17 @@ router.put("/:id", async (req, res) => {
   } catch {
     res.status(500).json({ message: "Failed to update request" });
   }
+});
+
+// SOFT DELETE service request (admin)
+router.delete("/:id", async (req, res) => {
+  try {
+    const updated = await ServiceRequest.findByIdAndUpdate(req.params.id, { status: "Closed" }, { new: true });
+    if (!updated) return res.status(404).json({ message: "Request not found" });
+    res.json({ message: "Request closed successfully" });
+  } catch {
+    res.status(500).json({ message: "Failed to close request" });
+  } 
 });
 
 module.exports = router;
