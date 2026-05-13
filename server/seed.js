@@ -35,7 +35,7 @@ const events = [
     capacity:    50,
     booked:      32,
     status:      "Upcoming",
-    imageUrl:    "",
+    imageUrl:    "/images/community-cleanup.jpg",
   },
   {
     title:       "Town Hall Meeting",
@@ -47,7 +47,7 @@ const events = [
     capacity:    100,
     booked:      67,
     status:      "Upcoming",
-    imageUrl:    "",
+    imageUrl:    "/images/town-hall.jpg",
   },
   {
     title:       "Youth Coding Workshop",
@@ -59,7 +59,7 @@ const events = [
     capacity:    20,
     booked:      20,
     status:      "Full",
-    imageUrl:    "",
+    imageUrl:    "/images/coding-workshop.jpg",
   },
   {
     title:       "Seniors Morning Tea",
@@ -71,7 +71,7 @@ const events = [
     capacity:    40,
     booked:      12,
     status:      "Upcoming",
-    imageUrl:    "",
+    imageUrl:    "/images/seniors-tea.jpg",
   },
   {
     title:       "Farmers Market",
@@ -83,7 +83,7 @@ const events = [
     capacity:    200,
     booked:      200,
     status:      "Completed",
-    imageUrl:    "",
+    imageUrl:    "/images/farmers-market.jpg",
   },
 ];
 
@@ -151,35 +151,35 @@ const services = [
     category:    "Waste",
     description: "Request waste collection, report a missed bin, or enquire about hard waste pickup schedules.",
     contact:     { phone: "0412345678", email: "waste@citylink.com" },
-    imageUrl:    "",
+    imageUrl:    "/images/waste-collection.jpg",
   },
   {
     title:       "Rates Enquiry",
     category:    "Finance",
     description: "View your rates notice, make a payment, or set up a payment plan with our finance team.",
     contact:     { phone: "0412345679", email: "rates@citylink.com" },
-    imageUrl:    "",
+    imageUrl:    "/images/rates-finance.jpg",
   },
   {
     title:       "Permits & Licences",
     category:    "Permits",
     description: "Apply for building permits, event licences, parking permits, and other council approvals.",
     contact:     { phone: "0412345680", email: "permits@citylink.com" },
-    imageUrl:    "",
+    imageUrl:    "/images/permits.jpg",
   },
   {
     title:       "Parks & Recreation",
     category:    "Community",
     description: "Book a park pavilion, report damaged equipment, or enquire about recreational programs.",
     contact:     { phone: "0412345681", email: "parks@citylink.com" },
-    imageUrl:    "",
+    imageUrl:    "/images/parks-recreation.jpg",
   },
   {
     title:       "Roads & Infrastructure",
     category:    "Infrastructure",
     description: "Report a pothole, request a street light repair, or check on planned roadworks in your area.",
     contact:     { phone: "0412345682", email: "roads@citylink.com" },
-    imageUrl:    "",
+    imageUrl:    "/images/roads-infrastructure.jpg",
   },
 ];
 
