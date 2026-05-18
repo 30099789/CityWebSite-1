@@ -1,48 +1,35 @@
-// eventService.js — Sprint 3 Week 8: all calls hit the real MongoDB API
-import BASE_URL from "./api";
+// eventService.js — Sprint 3
+// CRUD for events — sends JWT token on write requests
+import { authHeaders } from "../context/AuthContext";
 
-const URL = `${BASE_URL}/events`;
+const API_URL = "http://localhost:5000/api/events";
 
 export async function fetchEvents() {
-  const res = await fetch(URL);
+  const res = await fetch(API_URL);
   if (!res.ok) throw new Error("Failed to fetch events");
   return res.json();
 }
 
 export async function createEvent(data) {
-  const res = await fetch(URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+  const res = await fetch(API_URL, {
+    method: "POST", headers: authHeaders(), body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Failed to create event");
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Failed to create event"); }
   return res.json();
 }
 
 export async function updateEvent(id, data) {
-  const res = await fetch(`${URL}/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "PUT", headers: authHeaders(), body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Failed to update event");
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Failed to update event"); }
   return res.json();
 }
 
 export async function deleteEvent(id) {
-  const res = await fetch(`${URL}/${id}`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete event");
-  return res.json();
-}
-
-// Upload an image file — returns { imageUrl }
-export async function uploadEventImage(file) {
-  const formData = new FormData();
-  formData.append("image", file);
-  const res = await fetch(`${URL}/upload-image`, {
-    method: "POST",
-    body: formData,
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "DELETE", headers: authHeaders(),
   });
-  if (!res.ok) throw new Error("Failed to upload image");
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Failed to delete event"); }
   return res.json();
 }

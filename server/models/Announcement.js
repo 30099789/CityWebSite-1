@@ -14,18 +14,18 @@ const announcementSchema = new mongoose.Schema(
     },
     content: {
       type: String,
-      default: "",
+      required: true,
       trim: true,
     },
     priority: {
       type: String,
-      enum: ["low", "medium", "high"],
-      default: "medium",
+      enum: ["Notice", "Update", "Alert"],
+      default: "Notice",
     },
     status: {
       type: String,
-      enum: ["draft", "published", "archived"],
-      default: "draft",
+      enum: ["Draft", "Published", "Scheduled", "Archived"],
+      default: "Draft",
     },
     date: {
       type: Date,
@@ -33,22 +33,18 @@ const announcementSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      default: "",
+      required: true,
       trim: true,
     },
     audience: {
       type: String,
-      default: "All",
+      required: true,
       trim: true,
     },
     author: {
       type: String,
-      default: "",
+      required: true,
       trim: true,
-    },
-    imageUrl: {
-      type: String,
-      default: "",
     },
   },
   {

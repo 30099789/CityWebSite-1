@@ -1,14 +1,14 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import Logo from "../../components/Logo";
 import { fetchEvents } from "../../services/eventService";
 import { fetchAnnouncements } from "../../services/announcementService";
 import { fetchFeedback } from "../../services/feedbackService";
 import { fetchBookings } from "../../services/bookingService";
 import { fetchUsers } from "../../services/userService";
-import { getEvents, getBookings, getFeedback, getAnnouncements, getUsers,
-  saveEvents, saveAnnouncements, saveFeedback, saveBookings } from "../../data/mockData";
-import Logo from "../../components/Logo";
+import { fetchServices } from "../../services/serviceService";
+import BASE_URL from "../../services/api";
 
 /* ── ICONS ─────────────────────────────────────────────────────────────────── */
 const I = ({ d, cls = "w-5 h-5" }) => (
@@ -24,14 +24,15 @@ const ICONS = {
   bookmark:  "M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z",
   arrow:     "M9 5l7 7-7 7",
   download:  "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
-  upload:    "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12",
   plus:      "M12 4v16m8-8H4",
   logout:    "M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1",
   user:      "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+  briefcase: "M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
+  clipboard: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
 };
 
 /* ── KPI CARD ───────────────────────────────────────────────────────────────── */
-function KpiCard({ iconKey, label, value, sub }) {
+function KpiCard({ label, value, sub }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
       <div className="text-3xl font-bold text-slate-900 mb-1">{value}</div>
@@ -53,7 +54,7 @@ function MgmtRow({ to, iconKey, label, count, unit }) {
         <span className="text-sm font-semibold text-slate-800">{label}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-xs text-slate-400 font-medium">{count} {unit}</span>
+        {count !== "" && <span className="text-xs text-slate-400 font-medium">{count} {unit}</span>}
         <I d={ICONS.arrow} cls="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition" />
       </div>
     </Link>
@@ -61,10 +62,10 @@ function MgmtRow({ to, iconKey, label, count, unit }) {
 }
 
 /* ── QUICK ACTION CARD ──────────────────────────────────────────────────────── */
-function QuickCard({ iconKey, label, onClick, disabled }) {
+function QuickCard({ iconKey, label, onClick }) {
   return (
-    <button onClick={onClick} disabled={disabled}
-      className="flex flex-col items-center justify-center gap-3 bg-white border border-slate-200 rounded-2xl p-6 hover:border-blue-300 hover:shadow-md transition w-full disabled:opacity-50 disabled:cursor-not-allowed">
+    <button onClick={onClick}
+      className="flex flex-col items-center justify-center gap-3 bg-white border border-slate-200 rounded-2xl p-6 hover:border-blue-300 hover:shadow-md transition w-full">
       <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
         <I d={ICONS[iconKey]} cls="w-6 h-6 text-blue-700" />
       </div>
@@ -73,141 +74,56 @@ function QuickCard({ iconKey, label, onClick, disabled }) {
   );
 }
 
-/* ── XML HELPERS ────────────────────────────────────────────────────────────── */
-function exportXML() {
-  const data = {
-    events:        getEvents(),
-    announcements: getAnnouncements(),
-    feedback:      getFeedback(),
-    bookings:      getBookings(),
-  };
-
-  function toXml(obj, tag) {
-    if (Array.isArray(obj)) return obj.map((item) => toXml(item, tag.replace(/s$/, ""))).join("\n");
-    if (typeof obj === "object" && obj !== null) {
-      const inner = Object.entries(obj).map(([k, v]) => toXml(v, k)).join("");
-      return `<${tag}>${inner}</${tag}>`;
-    }
-    return `<${tag}>${String(obj ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</${tag}>`;
-  }
-
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<citylink>\n`
-    + `  <events>\n${toXml(data.events,"events")}\n  </events>\n`
-    + `  <announcements>\n${toXml(data.announcements,"announcements")}\n  </announcements>\n`
-    + `  <feedback>\n${toXml(data.feedback,"feedback")}\n  </feedback>\n`
-    + `  <bookings>\n${toXml(data.bookings,"bookings")}\n  </bookings>\n`
-    + `</citylink>`;
-
-  const blob = new Blob([xml], { type: "application/xml" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = `citylink-export-${new Date().toISOString().slice(0,10)}.xml`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function importXML(file, onDone, onError) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const parser = new DOMParser();
-      const doc    = parser.parseFromString(e.target.result, "application/xml");
-
-      function parseItems(tag) {
-        return Array.from(doc.getElementsByTagName(tag)).map((el) => {
-          const obj = {};
-          Array.from(el.children).forEach((child) => { obj[child.tagName] = child.textContent; });
-          return obj;
-        });
-      }
-
-      const events        = parseItems("event");
-      const announcements = parseItems("announcement");
-      const feedback      = parseItems("feedbackItem");
-      const bookings      = parseItems("booking");
-
-      if (events.length)        saveEvents(events);
-      if (announcements.length) saveAnnouncements(announcements);
-      if (feedback.length)      saveFeedback(feedback);
-      if (bookings.length)      saveBookings(bookings);
-
-      onDone({ events: events.length, announcements: announcements.length, feedback: feedback.length, bookings: bookings.length });
-    } catch (err) {
-      onError("Invalid XML file. Please use a CityLink export file.");
-    }
-  };
-  reader.readAsText(file);
-}
-
 /* ── MAIN COMPONENT ─────────────────────────────────────────────────────────── */
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const navigate         = useNavigate();
-  const fileRef          = useRef();
   const isAdmin          = user?.role === "admin";
 
-  const [toast, setToast] = useState(null);
-
-  const [events,        setEvents]        = useState([]);
-  const [bookings,      setBookings]      = useState([]);
-  const [feedback,      setFeedback]      = useState([]);
+  const [toast, setToast]                 = useState(null);
+  const [events, setEvents]               = useState([]);
+  const [bookings, setBookings]           = useState([]);
+  const [feedback, setFeedback]           = useState([]);
   const [announcements, setAnnouncements] = useState([]);
-  const [users,         setUsers]         = useState([]);
+  const [users, setUsers]                 = useState([]);
+  const [services, setServices]           = useState([]);
+  const [requests, setRequests]           = useState([]);
 
   useEffect(() => {
-    fetchEvents().then(setEvents);
-    fetchBookings().then(setBookings);
-    fetchFeedback().then(setFeedback);
-    fetchAnnouncements().then(setAnnouncements);
-    fetchUsers().then(setUsers);
+    fetchEvents().then(setEvents).catch(() => {});
+    fetchBookings().then(setBookings).catch(() => {});
+    fetchFeedback().then(setFeedback).catch(() => {});
+    fetchAnnouncements().then(setAnnouncements).catch(() => {});
+    fetchUsers().then(setUsers).catch(() => {});
+    fetchServices().then(setServices).catch(() => {});
+    fetch(`${BASE_URL}/service-requests`).then(r => r.json()).then(setRequests).catch(() => {});
   }, []);
 
   const activeBookings  = bookings.filter((b) => b.status === "Confirmed").length;
   const pendingFeedback = feedback.filter((f) => f.status === "New").length;
+  const pendingRequests = requests.filter((r) => r.status === "Pending").length;
 
   function showToast(msg, type = "success") {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
   }
 
-  function handleExport() {
-    exportXML();
-    showToast("Data exported successfully as XML.");
-  }
-
-  function handleImportClick() { fileRef.current?.click(); }
-
-  function handleFileChange(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    importXML(
-      file,
-      (counts) => showToast(`Imported: ${counts.events} events, ${counts.announcements} announcements, ${counts.feedback} feedback, ${counts.bookings} bookings.`),
-      (err)    => showToast(err, "error"),
-    );
-    e.target.value = "";
-  }
-
   function handleLogout() { logout(); navigate("/login", { replace: true }); }
 
   const recentActivity = [
-    { msg: "New booking: Community Clean-Up Day",       time: "5 min ago",  dot: "bg-blue-500"   },
-    { msg: "Feedback received from alice@email.com",    time: "1 hr ago",   dot: "bg-orange-400" },
-    { msg: "Announcement published: Bin Night Changes", time: "2 hrs ago",  dot: "bg-emerald-500"},
-    { msg: "Event updated: Town Hall Meeting",          time: "3 hrs ago",  dot: "bg-slate-400"  },
+    { msg: "New booking: Community Clean-Up Day",       time: "5 min ago",  dot: "bg-blue-500"    },
+    { msg: "Feedback received from alice@email.com",    time: "1 hr ago",   dot: "bg-orange-400"  },
+    { msg: "Announcement published: Bin Night Changes", time: "2 hrs ago",  dot: "bg-emerald-500" },
+    { msg: "Event updated: Town Hall Meeting",          time: "3 hrs ago",  dot: "bg-slate-400"   },
   ];
 
   return (
     <div className="min-h-screen bg-slate-50">
 
-      {/* ── NAVBAR ── */}
+      {/* NAVBAR */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          {/* Logo */}
           <Logo variant="compact" />
-
-          {/* Nav links */}
           <nav className="hidden lg:flex items-center gap-1 text-sm">
             {[
               { label: "Home",          to: "/"              },
@@ -223,8 +139,6 @@ export default function AdminDashboard() {
               </Link>
             ))}
           </nav>
-
-          {/* Right */}
           <div className="flex items-center gap-2 flex-shrink-0">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-blue-700 text-white rounded-lg text-sm font-bold">
               <I d={ICONS.user} cls="w-4 h-4" />
@@ -245,20 +159,15 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      {/* ── TOAST ── */}
+      {/* TOAST */}
       {toast && (
         <div className={`fixed top-5 right-5 z-50 flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium max-w-sm ${
-          toast.type === "error"
-            ? "bg-red-50 border-red-200 text-red-700"
-            : "bg-emerald-50 border-emerald-200 text-emerald-700"
+          toast.type === "error" ? "bg-red-50 border-red-200 text-red-700" : "bg-emerald-50 border-emerald-200 text-emerald-700"
         }`}>
           <I d={toast.type === "error" ? "M6 18L18 6M6 6l12 12" : "M5 13l4 4L19 7"} cls="w-4 h-4 flex-shrink-0 mt-0.5" />
           {toast.msg}
         </div>
       )}
-
-      {/* Hidden file input for XML import */}
-      <input ref={fileRef} type="file" accept=".xml" className="hidden" onChange={handleFileChange} />
 
       <div className="max-w-6xl mx-auto px-4 py-8">
 
@@ -270,42 +179,45 @@ export default function AdminDashboard() {
           <p className="text-slate-500 mt-1 text-sm">Here's what's happening in the community portal today.</p>
         </div>
 
-        {/* ── KPI CARDS ── */}
+        {/* KPI CARDS */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          <KpiCard iconKey="calendar" label="Total Events"     value={events.length}        sub={`${events.filter(e => e.status === "Upcoming").length} upcoming`} />
-          <KpiCard iconKey="bookmark" label="Active Bookings"  value={activeBookings}        sub="confirmed"      />
-          <KpiCard iconKey="chat"     label="Pending Feedback" value={pendingFeedback}        sub="needs response" />
-          <KpiCard iconKey="bell"     label="Announcements"    value={announcements.length}  sub="total"          />
+          <KpiCard label="Total Events"      value={events.length}       sub={`${events.filter(e => e.status === "Upcoming").length} upcoming`} />
+          <KpiCard label="Active Bookings"   value={activeBookings}       sub="confirmed"       />
+          <KpiCard label="Pending Feedback"  value={pendingFeedback}       sub="needs response"  />
+          <KpiCard label="Service Requests"  value={pendingRequests}       sub="pending"         />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-          {/* ── QUICK ACTIONS ── */}
+          {/* QUICK ACTIONS */}
           <section>
             <h2 className="text-xl font-bold text-slate-900 mb-4">Quick Actions</h2>
             <div className="grid grid-cols-2 gap-3">
-              <QuickCard iconKey="plus"     label="Create Event"       onClick={() => navigate("/admin/events")}        />
-              <QuickCard iconKey="bell"     label="Post Announcement"  onClick={() => navigate("/admin/announcements")} />
-              {isAdmin && <QuickCard iconKey="download" label="Export XML" onClick={handleExport} />}
-              {isAdmin && <QuickCard iconKey="upload"   label="Import XML"   onClick={handleImportClick} />}
+              <QuickCard iconKey="plus"      label="Create Event"      onClick={() => navigate("/admin/events")}        />
+              <QuickCard iconKey="bell"      label="Post Announcement" onClick={() => navigate("/admin/announcements")} />
+              <QuickCard iconKey="briefcase" label="Manage Services"   onClick={() => navigate("/admin/services")}      />
+              <QuickCard iconKey="download"  label="XML Manager"       onClick={() => navigate("/admin/xml")}           />
             </div>
           </section>
 
-          {/* ── MANAGEMENT ── */}
+          {/* MANAGEMENT */}
           <section>
             <h2 className="text-xl font-bold text-slate-900 mb-4">Management</h2>
             <div className="space-y-2">
-              <MgmtRow to="/admin/events"        iconKey="calendar" label="Manage Events"        count={events.length}        unit="events"        />
-              <MgmtRow to="/admin/bookings"      iconKey="bookmark" label="Manage Bookings"      count={activeBookings}        unit="bookings"      />
-              <MgmtRow to="/admin/feedback"      iconKey="chat"     label="Manage Feedback"      count={pendingFeedback}       unit="submissions"   />
-              <MgmtRow to="/admin/announcements" iconKey="bell"     label="Manage Announcements" count={announcements.length} unit="announcements" />
-              {isAdmin && <MgmtRow to="/admin/users" iconKey="users" label="Manage Users" count={users.length} unit="users" />}
+              <MgmtRow to="/admin/events"           iconKey="calendar"  label="Manage Events"          count={events.length}        unit="events"        />
+              <MgmtRow to="/admin/bookings"         iconKey="bookmark"  label="Manage Bookings"        count={activeBookings}        unit="bookings"      />
+              <MgmtRow to="/admin/feedback"         iconKey="chat"      label="Manage Feedback"        count={pendingFeedback}       unit="submissions"   />
+              <MgmtRow to="/admin/announcements"    iconKey="bell"      label="Manage Announcements"   count={announcements.length} unit="announcements" />
+              <MgmtRow to="/admin/services"         iconKey="briefcase" label="Manage Services"        count={services.length}      unit="services"      />
+              <MgmtRow to="/admin/service-requests" iconKey="clipboard" label="Service Requests"       count={pendingRequests}       unit="pending"       />
+              <MgmtRow to="/admin/xml"              iconKey="download"  label="XML Import / Export"    count=""                     unit=""              />
+              {isAdmin && <MgmtRow to="/admin/users" iconKey="users"    label="Manage Users"           count={users.length}         unit="users"         />}
             </div>
           </section>
 
         </div>
 
-        {/* ── RECENT ACTIVITY ── */}
+        {/* RECENT ACTIVITY */}
         <section className="mt-8">
           <h2 className="text-xl font-bold text-slate-900 mb-4">Recent Activity</h2>
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm divide-y divide-slate-100">

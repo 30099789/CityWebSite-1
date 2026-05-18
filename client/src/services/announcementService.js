@@ -1,36 +1,34 @@
-// announcementService.js — Sprint 3 Week 8: all calls hit the real MongoDB API
-import BASE_URL from "./api";
+// announcementService.js — Sprint 3
+import { authHeaders } from "../context/AuthContext";
 
-const URL = `${BASE_URL}/announcements`;
+const API_URL = "http://localhost:5000/api/announcements";
 
 export async function fetchAnnouncements() {
-  const res = await fetch(URL);
+  const res = await fetch(API_URL);
   if (!res.ok) throw new Error("Failed to fetch announcements");
   return res.json();
 }
 
 export async function createAnnouncement(data) {
-  const res = await fetch(URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+  const res = await fetch(API_URL, {
+    method: "POST", headers: authHeaders(), body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Failed to create announcement");
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Failed to create announcement"); }
   return res.json();
 }
 
 export async function updateAnnouncement(id, data) {
-  const res = await fetch(`${URL}/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "PUT", headers: authHeaders(), body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Failed to update announcement");
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Failed to update announcement"); }
   return res.json();
 }
 
 export async function deleteAnnouncement(id) {
-  const res = await fetch(`${URL}/${id}`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete announcement");
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "DELETE", headers: authHeaders(),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Failed to delete announcement"); }
   return res.json();
 }

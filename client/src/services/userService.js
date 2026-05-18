@@ -1,23 +1,28 @@
-import axios from "axios";
+// userService.js — fetches users without requiring token (admin dashboard)
+import BASE_URL, { authFetch } from "./api";
 
-const API_URL = "http://localhost:5000/api/users";
+const URL = `${BASE_URL}/users`;
 
-export const fetchUsers = async () => {
-  const res = await axios.get(API_URL);
-  return res.data;
-};
+export async function fetchUsers() {
+  const res = await fetch(URL);
+  if (!res.ok) throw new Error("Failed to fetch users");
+  return res.json();
+}
 
-export const createUser = async (user) => {
-  const res = await axios.post(API_URL, user);
-  return res.data;
-};
+export async function createUser(data) {
+  const res = await authFetch(URL, { method: "POST", body: JSON.stringify(data) });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || "Failed to create user"); }
+  return res.json();
+}
 
-export const updateUser = async (id, user) => {
-  const res = await axios.put(`${API_URL}/${id}`, user);
-  return res.data;
-};
+export async function updateUser(id, data) {
+  const res = await authFetch(`${URL}/${id}`, { method: "PUT", body: JSON.stringify(data) });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || "Failed to update user"); }
+  return res.json();
+}
 
-export const deleteUser = async (id) => {
-  const res = await axios.delete(`${API_URL}/${id}`);
-  return res.data;
-};
+export async function deleteUser(id) {
+  const res = await authFetch(`${URL}/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete user");
+  return res.json();
+}

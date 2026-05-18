@@ -7,6 +7,8 @@ import { useAuth } from "../context/AuthContext";
 import { getMenuConfig } from "../services/xmlService";
 import { useSettings } from "../hooks/useSettings";
 import Logo from "../components/Logo";
+import Chatbot from "../components/Chatbot";
+import AccessibilityWidget from "../components/AccessibilityWidget";
 
 // ── Fallback nav (used if menu.xml fails to load) ─────────────────────────────
 const FALLBACK_NAV = [
@@ -153,7 +155,7 @@ export default function MainLayout() {
               {!user ? (
                 <Link to="/login" className="px-3 py-1.5 text-sm font-semibold text-blue-700">Log In</Link>
               ) : (user.role === "admin" || user.role === "staff") ? (
-                <Link to="/admin" onClick={close} className="px-3 py-1.5 text-sm font-semibold text-slate-700 font-bold">Admin</Link>
+                <Link to="/admin" onClick={close} className="px-3 py-1.5 text-sm font-bold text-slate-700">Admin</Link>
               ) : (
                 <Link to="/profile" onClick={close} className="px-3 py-1.5 text-sm font-semibold text-blue-700">
                   {user.name?.split(" ")[0] || "Profile"}
@@ -282,6 +284,11 @@ export default function MainLayout() {
           </div>
         </div>
       </footer>
+
+      {/* Accessibility widget bottom left, Chatbot bottom right */}
+      <AccessibilityWidget />
+      <Chatbot />
+
     </div>
   );
 }

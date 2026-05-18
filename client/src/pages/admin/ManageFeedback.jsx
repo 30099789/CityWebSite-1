@@ -25,6 +25,11 @@ function AdminNav({ title }) {
   );
 }
 
+// Get the id from either _id (MongoDB) or id (localStorage mock)
+function getId(item) {
+  return item._id || item.id;
+}
+
 export default function ManageFeedback() {
   const [feedback, setFeedback] = useState([]);
   const [loading, setLoading]   = useState(true);
@@ -43,15 +48,17 @@ export default function ManageFeedback() {
     setTimeout(() => setToast(null), 3000);
   }
 
-  async function changeStatus(id, status) {
-    await updateFeedback(id, { status });
-    setFeedback(f => f.map(item => item.id === id ? { ...item, status } : item));
+  function changeStatus(id, status) {
+    // Update state immediately so the dropdown reflects the change
+    setFeedback(prev => prev.map(item => getId(item) === id ? { ...item, status } : item));
+    // Persist to localStorage
+    updateFeedback(id, { status });
   }
 
   async function submitResponse(id) {
     if (!response.trim()) return;
-    await updateFeedback(id, { response, status: "Resolved" });
-    setFeedback(f => f.map(item => item.id === id ? { ...item, response, status: "Resolved" } : item));
+    setFeedback(prev => prev.map(item => getId(item) === id ? { ...item, response, status: "Resolved" } : item));
+    updateFeedback(id, { response, status: "Resolved" });
     setSelected(null);
     setResponse("");
     showToast("Response saved successfully.");
@@ -59,7 +66,7 @@ export default function ManageFeedback() {
 
   function openRow(id) {
     if (selected === id) { setSelected(null); setResponse(""); return; }
-    const item = feedback.find(f => f.id === id);
+    const item = feedback.find(f => getId(f) === id);
     setSelected(id);
     setResponse(item?.response || "");
   }
@@ -117,71 +124,75 @@ export default function ManageFeedback() {
           </div>
         </div>
 
-        {/* Loading */}
         {loading && <p className="text-center py-10 text-slate-400 text-sm">Loading feedback…</p>}
 
-        {/* Feedback cards */}
         <div className="space-y-3">
           {!loading && filtered.length === 0 && (
             <p className="text-center py-10 text-slate-400 text-sm">No feedback found.</p>
           )}
-          {!loading && filtered.map(f => (
-            <div key={f.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="h-9 w-9 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                    {f.userName?.slice(0,2).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-medium text-slate-800 text-sm">{f.userName}</div>
-                    <div className="text-xs text-slate-400">{f.userEmail} · {f.submittedDate}</div>
-                  </div>
-                </div>
-                <span className="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
-                  {f.category}
-                </span>
-                <select value={f.status} onChange={e => changeStatus(f.id, e.target.value)}
-                  className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold cursor-pointer focus:outline-none ${STATUS_COLORS[f.status] || ""}`}>
-                  {STATUSES.map(s => <option key={s}>{s}</option>)}
-                </select>
-                <button onClick={() => openRow(f.id)}
-                  className="text-xs font-semibold text-blue-600 hover:underline ml-auto sm:ml-0 flex-shrink-0">
-                  {selected === f.id ? "Close ▲" : "View / Reply ▼"}
-                </button>
-              </div>
-
-              <div className="px-5 pb-4">
-                <p className="text-sm text-slate-600 line-clamp-2">{f.message}</p>
-              </div>
-
-              {selected === f.id && (
-                <div className="border-t border-slate-100 bg-slate-50 px-5 py-4 space-y-3">
-                  <p className="text-sm text-slate-700"><span className="font-semibold">Full message:</span> {f.message}</p>
-                  {f.response && (
-                    <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-800">
-                      <span className="font-semibold">Previous response:</span> {f.response}
+          {!loading && filtered.map(f => {
+            const fId = getId(f);
+            return (
+              <div key={fId} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="h-9 w-9 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                      {f.userName?.slice(0,2).toUpperCase()}
                     </div>
-                  )}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Your Response</label>
-                    <textarea value={response} onChange={e => setResponse(e.target.value)} rows={3}
-                      placeholder="Type a response…"
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                    <div className="min-w-0">
+                      <div className="font-medium text-slate-800 text-sm">{f.userName}</div>
+                      <div className="text-xs text-slate-400">{f.userEmail}{f.submittedDate ? ` · ${f.submittedDate}` : ""}</div>
+                    </div>
                   </div>
-                  <div className="flex gap-2 justify-end">
-                    <button onClick={() => { setSelected(null); setResponse(""); }}
-                      className="px-4 py-2 text-xs font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-white transition">
-                      Cancel
-                    </button>
-                    <button onClick={() => submitResponse(f.id)}
-                      className="px-4 py-2 text-xs font-semibold bg-blue-700 text-white rounded-xl hover:bg-blue-800 transition">
-                      Save Response
-                    </button>
-                  </div>
+                  <span className="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                    {f.category}
+                  </span>
+                  <select
+                    value={f.status}
+                    onChange={e => changeStatus(fId, e.target.value)}
+                    className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold cursor-pointer focus:outline-none ${STATUS_COLORS[f.status] || ""}`}
+                  >
+                    {STATUSES.map(s => <option key={s}>{s}</option>)}
+                  </select>
+                  <button onClick={() => openRow(fId)}
+                    className="text-xs font-semibold text-blue-600 hover:underline ml-auto sm:ml-0 flex-shrink-0">
+                    {selected === fId ? "Close ▲" : "View / Reply ▼"}
+                  </button>
                 </div>
-              )}
-            </div>
-          ))}
+
+                <div className="px-5 pb-4">
+                  <p className="text-sm text-slate-600 line-clamp-2">{f.message}</p>
+                </div>
+
+                {selected === fId && (
+                  <div className="border-t border-slate-100 bg-slate-50 px-5 py-4 space-y-3">
+                    <p className="text-sm text-slate-700"><span className="font-semibold">Full message:</span> {f.message}</p>
+                    {f.response && (
+                      <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-800">
+                        <span className="font-semibold">Previous response:</span> {f.response}
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Your Response</label>
+                      <textarea value={response} onChange={e => setResponse(e.target.value)} rows={3}
+                        placeholder="Type a response…"
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <button onClick={() => { setSelected(null); setResponse(""); }}
+                        className="px-4 py-2 text-xs font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-white transition">
+                        Cancel
+                      </button>
+                      <button onClick={() => submitResponse(fId)}
+                        className="px-4 py-2 text-xs font-semibold bg-blue-700 text-white rounded-xl hover:bg-blue-800 transition">
+                        Save Response
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
