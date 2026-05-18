@@ -1,13 +1,10 @@
-// routes/servicesRouter.js
-// CRUD for services — write routes protected by JWT auth
-
+// routes/servicesRouter.js — Sprint 3 (with image upload)
 const express = require("express");
 const router  = express.Router();
 const multer  = require("multer");
 const path    = require("path");
 const fs      = require("fs");
 const Service = require("../models/Service");
-const { protect, requireAdmin } = require("../middleware/auth");
 
 // ── Image upload setup ────────────────────────────────────────────────────────
 const uploadDir = path.join(__dirname, "../uploads/services");
@@ -30,13 +27,13 @@ const fileFilter = (_req, file, cb) => {
 
 const upload = multer({ storage, fileFilter, limits: { fileSize: 2 * 1024 * 1024 } });
 
-// POST upload image — admin/staff only
-router.post("/upload-image", protect, requireAdmin, upload.single("image"), (req, res) => {
+// POST /api/services/upload-image
+router.post("/upload-image", upload.single("image"), (req, res) => {
   if (!req.file) return res.status(400).json({ message: "No image provided." });
   res.json({ imageUrl: `/uploads/services/${req.file.filename}` });
 });
 
-// GET all services — public
+// GET all services
 router.get("/", async (req, res) => {
   try {
     const services = await Service.find().sort({ createdAt: -1 });
@@ -46,8 +43,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST create service — admin/staff only
-router.post("/", protect, requireAdmin, async (req, res) => {
+// POST create service
+router.post("/", async (req, res) => {
   try {
     const { title, description, category, contact, imageUrl } = req.body;
     if (!title || !description || !category || !contact?.phone || !contact?.email) {
@@ -64,14 +61,10 @@ router.post("/", protect, requireAdmin, async (req, res) => {
   }
 });
 
-// PUT update service — admin/staff only
-router.put("/:id", protect, requireAdmin, async (req, res) => {
+// PUT update service
+router.put("/:id", async (req, res) => {
   try {
-    const updated = await Service.findByIdAndUpdate(
-      req.params.id,
-      { $set: req.body },
-      { new: true }
-    );
+    const updated = await Service.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     if (!updated) return res.status(404).json({ message: "Service not found" });
     res.json(updated);
   } catch {
@@ -79,8 +72,8 @@ router.put("/:id", protect, requireAdmin, async (req, res) => {
   }
 });
 
-// DELETE service — admin/staff only
-router.delete("/:id", protect, requireAdmin, async (req, res) => {
+// DELETE service
+router.delete("/:id", async (req, res) => {
   try {
     const deleted = await Service.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Service not found" });
