@@ -1,9 +1,12 @@
-// routes/bookingsRouter.js — Sprint 3 Week 8
+// routes/bookingsRouter.js
+// Bookings — POST is public (residents book events), admin routes are protected
+
 const express = require("express");
 const router  = express.Router();
 const Booking = require("../models/Booking");
+const { protect, requireAdmin } = require("../middleware/auth");
 
-// POST create booking
+// POST create booking — public (logged-in residents)
 router.post("/", async (req, res) => {
   try {
     const { eventId, eventTitle, userName, userEmail, bookingDate, status } = req.body;
@@ -18,8 +21,8 @@ router.post("/", async (req, res) => {
   }
 });
 
-// GET all bookings
-router.get("/", async (req, res) => {
+// GET all bookings — admin/staff only
+router.get("/", protect, requireAdmin, async (req, res) => {
   try {
     const bookings = await Booking.find().sort({ createdAt: -1 });
     res.json(bookings);
@@ -28,12 +31,12 @@ router.get("/", async (req, res) => {
   }
 });
 
-// PUT update booking status
-router.put("/:id", async (req, res) => {
+// PUT update booking status — admin/staff only
+router.put("/:id", protect, requireAdmin, async (req, res) => {
   try {
     const updated = await Booking.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      { $set: req.body },
       { new: true }
     );
     if (!updated) return res.status(404).json({ message: "Booking not found" });
@@ -43,8 +46,8 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// DELETE booking
-router.delete("/:id", async (req, res) => {
+// DELETE booking — admin/staff only
+router.delete("/:id", protect, requireAdmin, async (req, res) => {
   try {
     const deleted = await Booking.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Booking not found" });
