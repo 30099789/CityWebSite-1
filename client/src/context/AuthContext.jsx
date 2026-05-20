@@ -4,8 +4,8 @@ import { createContext, useContext, useState } from "react";
 import { Link } from "react-router-dom";
 
 const AuthContext = createContext(null);
-import API from "../services/api";
-const API = '{BASE_URL}/users'; // Base URL for auth endpoints
+import BASE_URL from "../services/api";
+const API = `${BASE_URL}/users`; // Base URL for auth endpoints 
 
 // ── Helpers ───────────────────────────────────────────────────────────
 function getStoredUser()  {
