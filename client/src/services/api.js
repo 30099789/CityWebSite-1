@@ -1,5 +1,5 @@
 // api.js — base URL + authenticated fetch helper
-const BASE_URL = "http://localhost:5000/api";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://citywebsite-bvxz.onrender.com/api";
 export default BASE_URL;
 
 // Attaches JWT token from localStorage to every request
