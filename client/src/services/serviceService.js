@@ -1,7 +1,9 @@
 // serviceService.js — Sprint 3
+// CRUD for services — sends JWT token on write requests
+import BASE_URL from "./api";
 import { authHeaders } from "../context/AuthContext";
 
-const API_URL = "http://localhost:5000/api/services";
+const API_URL = `${BASE_URL}/services`;
 
 export async function fetchServices() {
   const res = await fetch(API_URL);

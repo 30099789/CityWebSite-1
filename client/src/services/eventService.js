@@ -1,12 +1,20 @@
 // eventService.js — Sprint 3
 // CRUD for events — sends JWT token on write requests
+// Assessment requirement: all write operations protected by JWT auth
+import BASE_URL from "./api";
 import { authHeaders } from "../context/AuthContext";
 
-const API_URL = "http://localhost:5000/api/events";
+const API_URL = `${BASE_URL}/events`;
 
 export async function fetchEvents() {
   const res = await fetch(API_URL);
   if (!res.ok) throw new Error("Failed to fetch events");
+  return res.json();
+}
+
+export async function fetchEventById(id) {
+  const res = await fetch(`${API_URL}/${id}`);
+  if (!res.ok) throw new Error("Failed to fetch event");
   return res.json();
 }
 

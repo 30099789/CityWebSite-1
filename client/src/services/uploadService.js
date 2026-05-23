@@ -1,62 +1,47 @@
-// ============================================================
-// FILE:    uploadService.js
-// PURPOSE: Handles image file uploads to the Express backend
-//          and resolves image URLs for display in the browser.
-// USED BY: ManageEvents.jsx, ManageServices.jsx (admin pages)
-// SPRINT:  Sprint 3 — Full-Stack Development
-// ============================================================
+// uploadService.js — Sprint 3
+// Handles image uploads to Express backend via Multer
+// Assessment requirement: image upload for events and services
 
-// Base URL for the upload API endpoint (backend must be running)
-const UPLOAD_URL = "http://localhost:5000/api/upload";
+import BASE_URL from "./api";
 
-// ------------------------------------------------------------
-// FUNCTION: uploadImage
-// PURPOSE:  Sends an image file to the server using a POST
-//           request with multipart/form-data encoding.
-//           The server saves the file and returns its URL path.
-// PARAM:    file — a File object from an <input type="file">
-// RETURNS:  A promise resolving to the imageUrl string
-//           e.g. "/uploads/1717000000000-123456789.jpg"
-// ------------------------------------------------------------
+const UPLOAD_URL = `${BASE_URL}/upload`;
+
+// Gets the base server URL (strips /api from the end)
+// Used to construct full image URLs for display
+const SERVER_URL = UPLOAD_URL.replace("/api/upload", "");
+
+// ── uploadImage ───────────────────────────────────────────────────────
+// Sends image file to backend via multipart/form-data POST
+// Requires JWT token — upload route is admin protected
+// Returns the imageUrl path stored in MongoDB e.g. /uploads/filename.jpg
 export async function uploadImage(file) {
-  // Use FormData to package the file for multipart upload
-  // NOTE: Do NOT manually set Content-Type — the browser adds
-  //       the correct boundary string automatically
   const formData = new FormData();
   formData.append("image", file);
 
-  // Send the file to the backend upload endpoint
+  // Get token from localStorage for auth header
+  const token = localStorage.getItem("citylink_token");
+
+  // NOTE: Do NOT set Content-Type manually — browser sets multipart boundary automatically
   const res = await fetch(UPLOAD_URL, {
     method: "POST",
+    headers: token ? { "Authorization": `Bearer ${token}` } : {},
     body: formData,
   });
 
-  // If the server returns an error, throw it so the UI can handle it
   if (!res.ok) {
     const err = await res.json();
     throw new Error(err.message || "Image upload failed");
   }
 
-  // Return just the imageUrl path from the server response
   const data = await res.json();
   return data.imageUrl;
 }
 
-// ------------------------------------------------------------
-// FUNCTION: getImageSrc
-// PURPOSE:  Converts a stored imageUrl into a full URL that
-//           the browser can use in an <img src="..."> tag.
-//           Handles both absolute URLs and relative server paths.
-// PARAM:    imageUrl — the path stored in the database
-// RETURNS:  A full URL string, or null if no image exists
-// ------------------------------------------------------------
+// ── getImageSrc ───────────────────────────────────────────────────────
+// Converts stored imageUrl path to full URL for use in <img src>
+// Handles both absolute URLs (http/https) and relative server paths (/uploads/...)
 export function getImageSrc(imageUrl) {
-  // Return null if no image has been set (UI can show placeholder)
   if (!imageUrl) return null;
-
-  // If already a full URL (e.g. external link), use it as-is
   if (imageUrl.startsWith("http")) return imageUrl;
-
-  // Otherwise prepend the backend server address
-  return `http://localhost:5000${imageUrl}`;
+  return `${SERVER_URL}${imageUrl}`;
 }
