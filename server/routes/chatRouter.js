@@ -10,7 +10,7 @@ const Service      = require("../models/Service");
 const Announcement = require("../models/Announcement");
 
 // Gemini API endpoint — using gemini-2.0-flash (free tier, fast)
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
 // ── Format helpers ────────────────────────────────────────────────────
 function formatDate(d) {
