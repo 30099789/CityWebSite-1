@@ -1,16 +1,13 @@
 // Profile.jsx — Sprint 3 Week 11
 // Assessment requirement: User profile page with booking and feedback history
-// Fetches latest user data from MongoDB on load so phone/suburb survive page refresh
-// Fetches bookings via /bookings/my?email= (public route, no auth needed)
-// Fetches feedback and service-requests filtered by user email
-// Supports inline profile editing (name, phone, suburb) via updateUser in AuthContext
+// Shows user name (editable), bookings, feedback and service requests
+// Fetches latest user data from MongoDB on load so name survives page refresh
 
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth, authHeaders } from "../context/AuthContext";
 import BASE_URL from "../services/api";
 
-// ── Icon helper ───────────────────────────────────────────────────────
 function Icon({ path, className = "w-4 h-4" }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
@@ -19,7 +16,6 @@ function Icon({ path, className = "w-4 h-4" }) {
   );
 }
 
-// ── Status badge styles ───────────────────────────────────────────────
 const STATUS_STYLES = {
   Confirmed:     "bg-emerald-50 text-emerald-700 border-emerald-200",
   Cancelled:     "bg-red-50 text-red-600 border-red-200",
@@ -39,7 +35,6 @@ function Badge({ status }) {
   );
 }
 
-// Gets initials from full name for avatar display
 function getInitials(name) {
   if (!name || typeof name !== "string") return "?";
   return name.trim().split(/\s+/).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
@@ -53,55 +48,37 @@ export default function Profile() {
   const userEmail = user?.email || "";
   const userRole  = user?.role  || "resident";
 
-  // ── State ─────────────────────────────────────────────────────────
-  const [tab, setTab]           = useState("bookings");
-  const [editing, setEditing]   = useState(false);
-  const [saved, setSaved]       = useState(false);
+  const [tab, setTab]       = useState("bookings");
+  const [editing, setEditing] = useState(false);
+  const [saved, setSaved]     = useState(false);
 
-  // editForm starts with user data from localStorage
-  // Gets overwritten with fresh DB data on load (see useEffect below)
-  const [editForm, setEditForm] = useState({
-    name:   userName,
-    phone:  user?.phone  || "",
-    suburb: user?.suburb || "",
-  });
+  // Only name is editable — phone and suburb removed
+  const [editName, setEditName] = useState(userName);
 
   const [myBookings, setMyBookings] = useState([]);
   const [myFeedback, setMyFeedback] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
   const [loading, setLoading]       = useState(true);
 
-  // ── Load user data and activity on mount ──────────────────────────
-  // Assessment requirement: profile data persists after refresh
-  // Fetches latest user record from MongoDB via GET /api/users/:id
-  // This ensures phone/suburb fields show correctly even after page refresh
-  // (localStorage only stores name, email, role from login response)
+  // ── Load data on mount ────────────────────────────────────────────
+  // Fetches latest name from DB, bookings, feedback and service requests
   useEffect(() => {
     if (!user) return;
     async function load() {
       try {
         const [uRes, bRes, fRes, rRes] = await Promise.all([
-          // Fetch latest user data from DB (includes phone, suburb)
           fetch(`${BASE_URL}/users/${user._id}`, { headers: authHeaders() }),
-          // Fetch bookings by email — public route, no auth needed
           fetch(`${BASE_URL}/bookings/my?email=${encodeURIComponent(userEmail)}`),
-          // Fetch all feedback — filter by email on client
           fetch(`${BASE_URL}/feedback`),
-          // Fetch all service requests — filter by email on client
           fetch(`${BASE_URL}/service-requests`),
         ]);
 
-        // Update editForm with latest DB values so phone/suburb show correctly
+        // Update name from DB so it reflects any previous edits
         if (uRes.ok) {
           const userData = await uRes.json();
-          setEditForm({
-            name:   userData.name   || userName,
-            phone:  userData.phone  || "",
-            suburb: userData.suburb || "",
-          });
+          setEditName(userData.name || userName);
         }
 
-        // Bookings already filtered by email on the server (/bookings/my)
         const bookings = bRes.ok ? await bRes.json() : [];
         const feedback = fRes.ok ? await fRes.json() : [];
         const requests = rRes.ok ? await rRes.json() : [];
@@ -110,7 +87,7 @@ export default function Profile() {
         setMyFeedback(feedback.filter((f) => f.userEmail === userEmail));
         setMyRequests(requests.filter((r) => r.userEmail === userEmail));
       } catch {
-        // Silently fail — empty arrays already set as default
+        // silently fail
       } finally {
         setLoading(false);
       }
@@ -118,9 +95,7 @@ export default function Profile() {
     load();
   }, [userEmail, user?._id]);
 
-  // ── Admin/staff redirect ───────────────────────────────────────────
-  // Admin and staff users are redirected to the admin portal
-  // Profile page is for residents only
+  // Admin/staff redirect to admin portal
   if (user && (user.role === "admin" || user.role === "staff")) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
@@ -147,7 +122,6 @@ export default function Profile() {
     );
   }
 
-  // ── Not logged in ─────────────────────────────────────────────────
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
@@ -165,11 +139,9 @@ export default function Profile() {
   const roleLabel = { admin: "Administrator", staff: "Staff Member", resident: "Community Member" }[userRole] || "Member";
   const roleBadge = { admin: "bg-violet-100 text-violet-700", staff: "bg-blue-100 text-blue-700", resident: "bg-slate-100 text-slate-600" }[userRole] || "bg-slate-100 text-slate-600";
 
-  // ── Save profile changes ───────────────────────────────────────────
-  // Calls updateUser from AuthContext which sends PUT /api/users/:id
-  // Also updates React state and localStorage so changes persist
+  // Save name only — sends { name } to PUT /api/users/:id
   async function handleSave() {
-    await updateUser(editForm);
+    await updateUser({ name: editName });
     setSaved(true);
     setEditing(false);
     setTimeout(() => setSaved(false), 3000);
@@ -186,12 +158,11 @@ export default function Profile() {
 
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
 
-        {/* ── Profile card ── */}
+        {/* Profile card */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Account Details</p>
             <div className="flex items-center gap-2">
-              {/* Success toast shown after save */}
               {saved && (
                 <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
                   <Icon path="M5 13l4 4L19 7" className="w-3 h-3" /> Saved
@@ -204,8 +175,14 @@ export default function Profile() {
                 </button>
               ) : (
                 <div className="flex gap-2">
-                  <button onClick={() => setEditing(false)} className="text-xs font-semibold text-slate-500 border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-50 transition">Cancel</button>
-                  <button onClick={handleSave} className="text-xs font-semibold text-white bg-blue-700 px-3 py-1.5 rounded-xl hover:bg-blue-800 transition">Save Changes</button>
+                  <button onClick={() => { setEditing(false); setEditName(userName); }}
+                    className="text-xs font-semibold text-slate-500 border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-50 transition">
+                    Cancel
+                  </button>
+                  <button onClick={handleSave}
+                    className="text-xs font-semibold text-white bg-blue-700 px-3 py-1.5 rounded-xl hover:bg-blue-800 transition">
+                    Save Changes
+                  </button>
                 </div>
               )}
             </div>
@@ -213,56 +190,30 @@ export default function Profile() {
 
           <div className="p-6">
             <div className="flex items-start gap-5">
-              {/* Avatar with initials */}
               <div className="w-16 h-16 rounded-2xl bg-blue-700 flex items-center justify-center flex-shrink-0">
-                <span className="text-xl font-bold text-white">{getInitials(editForm.name || userName)}</span>
+                <span className="text-xl font-bold text-white">{getInitials(editName || userName)}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                  {/* Name field — editable when editing mode is on */}
                   {editing ? (
-                    <input value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
-                      className="text-lg font-bold text-slate-900 border-b-2 border-blue-300 focus:border-blue-700 focus:outline-none bg-transparent" />
+                    <input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Your name"
+                      className="text-lg font-bold text-slate-900 border-b-2 border-blue-300 focus:border-blue-700 focus:outline-none bg-transparent"
+                    />
                   ) : (
-                    <h2 className="text-lg font-bold text-slate-900">{editForm.name || userName || "—"}</h2>
+                    <h2 className="text-lg font-bold text-slate-900">{editName || userName || "—"}</h2>
                   )}
                   <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${roleBadge}`}>{roleLabel}</span>
                 </div>
-                <p className="text-sm text-slate-500 mb-4">{userEmail}</p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Phone field */}
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Phone</p>
-                    {editing ? (
-                      <input value={editForm.phone} onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
-                        placeholder="Add phone number"
-                        className="w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-700/20" />
-                    ) : (
-                      <p className="text-sm text-slate-700">{editForm.phone || <span className="text-slate-400 italic">Not set</span>}</p>
-                    )}
-                  </div>
-                  {/* Suburb field */}
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Suburb</p>
-                    {editing ? (
-                      <input value={editForm.suburb} onChange={(e) => setEditForm((f) => ({ ...f, suburb: e.target.value }))}
-                        placeholder="Add suburb"
-                        className="w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-700/20" />
-                    ) : (
-                      <p className="text-sm text-slate-700">{editForm.suburb || <span className="text-slate-400 italic">Not set</span>}</p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Member Since</p>
-                    <p className="text-sm text-slate-700">{user?.joined || "2026"}</p>
-                  </div>
-                </div>
+                <p className="text-sm text-slate-500">{userEmail}</p>
+                <p className="text-xs text-slate-400 mt-1">Member since 2026</p>
               </div>
             </div>
           </div>
 
-          {/* Stats bar — shows counts from MongoDB */}
+          {/* Stats bar */}
           <div className="border-t border-slate-100 grid grid-cols-3 divide-x divide-slate-100">
             {[
               { label: "Bookings", value: myBookings.length },
@@ -277,7 +228,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* ── Activity tabs ── */}
+        {/* Tabs */}
         <div>
           <div className="flex gap-1 mb-4 bg-white border border-slate-200 rounded-xl p-1 w-fit shadow-sm">
             {[
@@ -294,7 +245,7 @@ export default function Profile() {
             ))}
           </div>
 
-          {/* Bookings tab — data from GET /api/bookings/my?email= */}
+          {/* Bookings tab */}
           {tab === "bookings" && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -390,7 +341,6 @@ export default function Profile() {
                         <Badge status={f.status} />
                       </div>
                       <p className="text-xs text-slate-500 line-clamp-2">{f.message || ""}</p>
-                      {/* Show staff response if one has been added */}
                       {f.response && (
                         <div className="mt-2.5 pl-3 border-l-2 border-blue-200">
                           <p className="text-xs font-semibold text-blue-700 mb-0.5">Staff Response</p>
@@ -405,7 +355,7 @@ export default function Profile() {
           )}
         </div>
 
-        {/* ── Bottom grid — quick links and account actions ── */}
+        {/* Bottom grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Quick Links</p>

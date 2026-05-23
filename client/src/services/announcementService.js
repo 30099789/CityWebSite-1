@@ -1,7 +1,9 @@
 // announcementService.js — Sprint 3
+// CRUD for announcements — sends JWT token on write requests
+import BASE_URL from "./api";
 import { authHeaders } from "../context/AuthContext";
 
-const API_URL = "http://localhost:5000/api/announcements";
+const API_URL = `${BASE_URL}/announcements`;
 
 export async function fetchAnnouncements() {
   const res = await fetch(API_URL);
