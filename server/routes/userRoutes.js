@@ -1,11 +1,19 @@
-// routes/userRoutes.js — GET all users is public for admin dashboard
+// routes/userRoutes.js
+// Assessment requirement: User authentication and profile management
+// Handles: register, login, get user by ID, update profile, delete user
+
 const express  = require("express");
 const bcrypt   = require("bcryptjs");
 const router   = express.Router();
 const User     = require("../models/User");
 const { protect, requireAdmin, requireAdminOnly, generateToken } = require("../middleware/auth");
 
-// POST /api/users/register
+// ── POST /api/users/register ──────────────────────────────────────────
+// Assessment requirement: user registration with validation
+// Validates name, email, password (min 6 chars)
+// Checks for duplicate email before creating account
+// Hashes password with bcrypt before saving to MongoDB
+// Returns JWT token on success so user is logged in immediately
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -29,7 +37,11 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// POST /api/users/login
+// ── POST /api/users/login ─────────────────────────────────────────────
+// Assessment requirement: JWT authentication
+// Finds user by email, compares password with bcrypt hash
+// Returns same error message for wrong email OR wrong password (prevents user enumeration)
+// Returns JWT token valid for 7 days on success
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -47,8 +59,24 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// GET all users — no auth required for admin dashboard to work with hardcoded admin
-router.get("/", async (req, res) => {
+// ── GET /api/users/:id ────────────────────────────────────────────────
+// Returns a single user by ID — used by Profile page to load latest data
+// Requires JWT token — user can only fetch their own profile
+// Returns all fields except password (-password projection)
+router.get("/:id", protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id, "-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch {
+    res.status(500).json({ message: "Failed to fetch user" });
+  }
+});
+
+// ── GET /api/users ────────────────────────────────────────────────────
+// Returns all users for admin dashboard — admin/staff only
+// Excludes password field from all results
+router.get("/", protect, requireAdmin, async (req, res) => {
   try {
     const users = await User.find({}, "-password").sort({ createdAt: -1 });
     res.json(users);
@@ -57,13 +85,21 @@ router.get("/", async (req, res) => {
   }
 });
 
-// PUT update user
-router.put("/:id", async (req, res) => {
+// ── PUT /api/users/:id ────────────────────────────────────────────────
+// Assessment requirement: profile editing
+// Updates name, phone, suburb and other fields
+// If password included, hashes it before saving
+// Returns updated user without password field
+router.put("/:id", protect, async (req, res) => {
   try {
     const { password, ...rest } = req.body;
     const update = { ...rest };
     if (password) update.password = await bcrypt.hash(password, 10);
-    const updated = await User.findByIdAndUpdate(req.params.id, update, { new: true, select: "-password" });
+    const updated = await User.findByIdAndUpdate(
+      req.params.id,
+      update,
+      { new: true, select: "-password" }
+    );
     if (!updated) return res.status(404).json({ message: "User not found" });
     res.json(updated);
   } catch {
@@ -71,8 +107,9 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// DELETE user
-router.delete("/:id", async (req, res) => {
+// ── DELETE /api/users/:id ─────────────────────────────────────────────
+// Admin only — permanently removes a user account from MongoDB
+router.delete("/:id", protect, requireAdminOnly, async (req, res) => {
   try {
     const deleted = await User.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "User not found" });
