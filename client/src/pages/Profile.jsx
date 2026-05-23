@@ -58,16 +58,18 @@ export default function Profile() {
     if (!user) return;
     async function load() {
       try {
-        // Fetch bookings filtered by user email
+        // Fetch bookings via /my?email= (public route — no auth needed)
+        // Fetch feedback and service-requests (public GET routes)
         const [bRes, fRes, rRes] = await Promise.all([
-          fetch(`${BASE_URL}/bookings`),
+          fetch(`${BASE_URL}/bookings/my?email=${encodeURIComponent(userEmail)}`),
           fetch(`${BASE_URL}/feedback`),
           fetch(`${BASE_URL}/service-requests`),
         ]);
+        // Bookings already filtered by email on the server
         const bookings = bRes.ok ? await bRes.json() : [];
         const feedback = fRes.ok ? await fRes.json() : [];
         const requests = rRes.ok ? await rRes.json() : [];
-        setMyBookings(bookings.filter((b) => b.userEmail === userEmail));
+        setMyBookings(bookings);
         setMyFeedback(feedback.filter((f) => f.userEmail === userEmail));
         setMyRequests(requests.filter((r) => r.userEmail === userEmail));
       } catch {
@@ -79,7 +81,7 @@ export default function Profile() {
     load();
   }, [userEmail]);
 
-  // Admin/staff redirect
+  // Admin/staff redirect to admin portal
   if (user && (user.role === "admin" || user.role === "staff")) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
@@ -213,7 +215,7 @@ export default function Profile() {
           </div>
 
           {/* Stats bar */}
-          <div className="border-t border-slate-100 grid grid-cols-4 divide-x divide-slate-100">
+          <div className="border-t border-slate-100 grid grid-cols-3 divide-x divide-slate-100">
             {[
               { label: "Bookings", value: myBookings.length },
               { label: "Requests", value: myRequests.length },
@@ -279,7 +281,6 @@ export default function Profile() {
             </div>
           )}
 
-
           {/* Requests tab */}
           {tab === "requests" && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -317,6 +318,7 @@ export default function Profile() {
               )}
             </div>
           )}
+
           {/* Feedback tab */}
           {tab === "feedback" && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">

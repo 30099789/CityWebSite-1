@@ -1,12 +1,12 @@
 // routes/bookingsRouter.js
-// Bookings — POST is public (residents book events), admin routes are protected
+// Bookings — POST is public, /my is public (by email), admin routes are protected
 
 const express = require("express");
 const router  = express.Router();
 const Booking = require("../models/Booking");
 const { protect, requireAdmin } = require("../middleware/auth");
 
-// POST create booking — public (logged-in residents)
+// POST create booking — public (residents book events)
 router.post("/", async (req, res) => {
   try {
     const { eventId, eventTitle, userName, userEmail, bookingDate, status } = req.body;
@@ -18,6 +18,18 @@ router.post("/", async (req, res) => {
     res.status(201).json(saved);
   } catch {
     res.status(500).json({ message: "Failed to create booking" });
+  }
+});
+
+// GET bookings by email — public (residents view their own bookings on profile page)
+router.get("/my", async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) return res.status(400).json({ message: "Email query parameter is required" });
+    const bookings = await Booking.find({ userEmail: email }).sort({ createdAt: -1 });
+    res.json(bookings);
+  } catch {
+    res.status(500).json({ message: "Failed to fetch bookings" });
   }
 });
 
