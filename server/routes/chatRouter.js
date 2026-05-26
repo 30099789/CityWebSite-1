@@ -1,7 +1,10 @@
-// routes/chatRouter.js — AI chatbot using Google Gemini API + live DB data
+// routes/chatRouter.js
+// AI chatbot powered by Google Gemini API (gemini-2.5-flash)
 // Assessment requirement: AI-powered chatbot with live database context
-// Replaced local Ollama with Gemini API so chatbot works on deployed version
-// API key stored in environment variable GEMINI_API_KEY (never hardcoded)
+// Fetches live events, services and announcements from MongoDB
+// and sends them as context to Gemini so it can answer accurately
+// Rate limited to 10 requests per minute per IP to protect Gemini free tier quota
+// API key stored in GEMINI_API_KEY environment variable — never hardcoded
 
 const express      = require("express");
 const router       = express.Router();
@@ -9,10 +12,41 @@ const Event        = require("../models/Event");
 const Service      = require("../models/Service");
 const Announcement = require("../models/Announcement");
 
-// Gemini API endpoint — using gemini-2.0-flash (free tier, fast)
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+// ── Gemini API config ─────────────────────────────────────────────────
+// Using gemini-2.5-flash — free tier, fast response, good for chat
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent";
 
-// ── Format helpers ────────────────────────────────────────────────────
+// ── Rate limiting ─────────────────────────────────────────────────────
+// Simple in-memory rate limiter — no extra npm packages needed
+// Limits each IP address to 10 chat requests per minute
+// Protects Gemini free tier quota (1,500 requests/day, 15 requests/minute)
+// Map stores { count, start } per IP — resets after 1 minute window
+const rateLimitMap = new Map();
+
+function isRateLimited(ip) {
+  const now    = Date.now();
+  const window = 60 * 1000; // 1 minute in milliseconds
+  const limit  = 10;        // max 10 requests per minute per IP
+
+  if (!rateLimitMap.has(ip)) {
+    rateLimitMap.set(ip, { count: 1, start: now });
+    return false;
+  }
+
+  const entry = rateLimitMap.get(ip);
+
+  // Reset the window if 1 minute has passed since first request
+  if (now - entry.start > window) {
+    rateLimitMap.set(ip, { count: 1, start: now });
+    return false;
+  }
+
+  // Increment request count and check against limit
+  entry.count++;
+  return entry.count > limit;
+}
+
+// ── Date helpers ──────────────────────────────────────────────────────
 function formatDate(d) {
   if (!d) return "TBA";
   return new Date(d).toLocaleDateString("en-AU", {
@@ -24,9 +58,11 @@ function daysUntil(d) {
   return Math.ceil((new Date(d) - new Date()) / (1000 * 60 * 60 * 24));
 }
 
-// ── Build live context from MongoDB ──────────────────────────────────
-// Fetches upcoming events, services and published announcements
-// Sends this data to Gemini as context so it can answer accurately
+// ── Live database context ─────────────────────────────────────────────
+// Assessment requirement: chatbot reads live data from MongoDB
+// Fetches upcoming events, available services and published announcements
+// This context is sent to Gemini with every request so answers are accurate
+// Only reads public data — no user passwords or personal data exposed
 async function getLiveContext() {
   try {
     const today = new Date();
@@ -43,10 +79,11 @@ async function getLiveContext() {
       weekday: "long", day: "numeric", month: "long", year: "numeric"
     })}\n\n`;
 
+    // Add upcoming events with spot availability and urgency
     if (upcoming.length > 0) {
-      context += `UPCOMING EVENTS (${upcoming.length}):\n`;
+      context += `UPCOMING EVENTS (${upcoming.length} total):\n`;
       upcoming.forEach((e) => {
-        const days     = daysUntil(e.date);
+        const days      = daysUntil(e.date);
         const spotsLeft = e.capacity - (e.booked || 0);
         context += `- "${e.title}" on ${formatDate(e.date)} at ${e.time || "TBA"}, ${e.location || "TBA"}`;
         context += ` | Status: ${e.status}`;
@@ -62,13 +99,15 @@ async function getLiveContext() {
       context += `\nNEXT EVENT: "${next.title}" — ${daysUntil(next.date) <= 0 ? "today!" : `in ${daysUntil(next.date)} days on ${formatDate(next.date)}`}\n`;
     }
 
+    // Add available services with contact details
     if (services.length > 0) {
-      context += `\nSERVICES (${services.length}):\n`;
+      context += `\nAVAILABLE SERVICES (${services.length} total):\n`;
       services.forEach((s) => {
         context += `- ${s.title} (${s.category}) | Phone: ${s.contact?.phone || "N/A"} | Email: ${s.contact?.email || "N/A"}\n`;
       });
     }
 
+    // Add latest published announcements
     if (announcements.length > 0) {
       context += `\nLATEST ANNOUNCEMENTS:\n`;
       announcements.forEach((a) => {
@@ -78,20 +117,22 @@ async function getLiveContext() {
 
     return context;
   } catch (err) {
-    console.error("DB context error:", err.message);
+    console.error("Gemini context DB error:", err.message);
     return "Live data temporarily unavailable.";
   }
 }
 
 // ── System prompt ─────────────────────────────────────────────────────
+// Tells Gemini how to behave as the CityLink assistant
+// Sets security rules, tone, response length and portal navigation links
 const SYSTEM_PROMPT = `You are the CityLink Smart Community Portal assistant for CityLink Initiatives, Perth WA.
 
 SECURITY RULES:
 - NEVER ask for passwords, usernames, or any credentials
-- NEVER collect personal information
-- If someone shares a password, tell them to keep it private
+- NEVER collect or store personal information
+- If someone shares a password, tell them to keep it private and not share it
 
-You have access to LIVE data from the CityLink database (provided with each message).
+You have access to LIVE data from the CityLink database (provided below each message).
 Use this data to answer questions about events, services and announcements accurately.
 
 When answering about events:
@@ -109,47 +150,61 @@ Portal pages: /events /services /announcements /faq /feedback /contact /login /s
 Contact: info@citylink.gov | (08) 9000 0000`;
 
 // ── POST /api/chat ────────────────────────────────────────────────────
+// Receives conversation history from Chatbot.jsx
+// Fetches live DB context, builds Gemini request, returns AI response
+// Assessment requirement: AI chatbot using external API with live data
 router.post("/", async (req, res) => {
   try {
+    // Rate limit check — returns 429 if IP exceeds 10 requests/minute
+    const ip = req.ip || req.connection.remoteAddress || "unknown";
+    if (isRateLimited(ip)) {
+      return res.status(429).json({
+        message: "Too many requests. Please wait a minute before sending another message."
+      });
+    }
+
     const { messages } = req.body;
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ message: "messages array is required" });
     }
 
+    // Check Gemini API key is configured in environment variables
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return res.status(503).json({ message: "Chatbot is not configured. Please contact the administrator." });
     }
 
-    // Get live database context
+    // Get live data from MongoDB to give Gemini accurate context
     const liveContext = await getLiveContext();
 
-    // Build conversation history for Gemini
-    // Gemini uses { role: "user"/"model", parts: [{ text }] } format
+    // Build Gemini conversation history
+    // Gemini format: { role: "user"/"model", parts: [{ text }] }
+    // Only send last 6 messages to avoid exceeding token limits
     const lastMessages = messages.slice(-6);
     const history = lastMessages.map((m) => ({
-      role: m.role === "user" ? "user" : "model",
+      role:  m.role === "user" ? "user" : "model",
       parts: [{ text: m.content }],
     }));
 
-    // Add system context as first user message if no history
+    // Combine system prompt with live database context
     const fullPrompt = `${SYSTEM_PROMPT}\n\n=== LIVE DATABASE DATA ===\n${liveContext}\n=========================`;
 
-    // Build Gemini request body
+    // Build Gemini API request body
     const geminiBody = {
       contents: [
-        // System context as first turn
+        // System context as opening turn (user then model confirms understanding)
         { role: "user",  parts: [{ text: fullPrompt }] },
         { role: "model", parts: [{ text: "Understood! I'm ready to help CityLink community members with accurate, live information." }] },
-        // Actual conversation
+        // Actual conversation history
         ...history,
       ],
       generationConfig: {
-        temperature:     0.5,
-        maxOutputTokens: 200,
+        temperature:     0.5,  // balanced — not too creative, not too rigid
+        maxOutputTokens: 200,  // keep responses short
         topK:            10,
         topP:            0.9,
       },
+      // Safety filters — blocks harmful content from Gemini responses
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT",        threshold: "BLOCK_MEDIUM_AND_ABOVE" },
         { category: "HARM_CATEGORY_HATE_SPEECH",       threshold: "BLOCK_MEDIUM_AND_ABOVE" },
@@ -157,7 +212,7 @@ router.post("/", async (req, res) => {
       ],
     };
 
-    // Call Gemini API
+    // Call Gemini API with key in query string
     const response = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
@@ -172,14 +227,15 @@ router.post("/", async (req, res) => {
 
     const data = await response.json();
 
-    // Extract text from Gemini response
+    // Extract text from Gemini response structure
     let answer = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
     if (!answer) {
       return res.status(500).json({ message: "No response from AI. Please try again." });
     }
 
-    // Security filter — never leak credentials
+    // Security filter — extra protection against credential-related responses
+    // Even if Gemini ignores the system prompt, this catches credential requests
     const credentialPatterns = [
       /password/i,
       /username/i,
@@ -193,7 +249,7 @@ router.post("/", async (req, res) => {
     res.json({ answer });
 
   } catch (err) {
-    console.error("Chat error:", err.message);
+    console.error("Chat route error:", err.message);
     res.status(500).json({ message: "Something went wrong. Please try again." });
   }
 });
