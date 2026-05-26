@@ -1,5 +1,5 @@
 // routes/chatRouter.js
-// AI chatbot powered by Google Gemini API (gemini-2.5-flash)
+// AI chatbot powered by Google Gemini API (gemini-2.0-flash-lite)
 // Assessment requirement: AI-powered chatbot with live database context
 // Fetches live events, services and announcements from MongoDB
 // and sends them as context to Gemini so it can answer accurately
@@ -13,20 +13,19 @@ const Service      = require("../models/Service");
 const Announcement = require("../models/Announcement");
 
 // ── Gemini API config ─────────────────────────────────────────────────
-// Using gemini-2.5-flash — free tier, fast response, good for chat
+// gemini-2.0-flash-lite — free tier: 1,500 req/day, 30 RPM (most generous free model)
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent";
 
 // ── Rate limiting ─────────────────────────────────────────────────────
 // Simple in-memory rate limiter — no extra npm packages needed
-// Limits each IP address to 10 chat requests per minute
-// Protects Gemini free tier quota (1,500 requests/day, 15 requests/minute)
+// Limits each IP address to 8 chat requests per minute (conservative buffer below Gemini's 30 RPM)
 // Map stores { count, start } per IP — resets after 1 minute window
 const rateLimitMap = new Map();
 
 function isRateLimited(ip) {
   const now    = Date.now();
   const window = 60 * 1000; // 1 minute in milliseconds
-  const limit  = 10;        // max 10 requests per minute per IP
+  const limit  = 8;         // stay well under Gemini's 30 RPM free tier limit
 
   if (!rateLimitMap.has(ip)) {
     rateLimitMap.set(ip, { count: 1, start: now });
@@ -44,6 +43,28 @@ function isRateLimited(ip) {
   // Increment request count and check against limit
   entry.count++;
   return entry.count > limit;
+}
+
+// ── Retry helper ──────────────────────────────────────────────────────
+// If Gemini returns 429 (quota), waits retryDelay ms and tries again
+// Gives up after maxRetries attempts and throws so the route returns a clean error
+async function fetchWithRetry(url, options, maxRetries = 2, retryDelay = 5000) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const response = await fetch(url, options);
+
+    // Success — return immediately
+    if (response.ok) return response;
+
+    // 429 quota hit — wait and retry (unless this was the last attempt)
+    if (response.status === 429 && attempt < maxRetries) {
+      console.warn(`Gemini 429 — attempt ${attempt + 1}/${maxRetries + 1}, retrying in ${retryDelay / 1000}s…`);
+      await new Promise((r) => setTimeout(r, retryDelay));
+      continue;
+    }
+
+    // Other error or retries exhausted — return the response so caller can handle it
+    return response;
+  }
 }
 
 // ── Date helpers ──────────────────────────────────────────────────────
@@ -155,7 +176,7 @@ Contact: info@citylink.gov | (08) 9000 0000`;
 // Assessment requirement: AI chatbot using external API with live data
 router.post("/", async (req, res) => {
   try {
-    // Rate limit check — returns 429 if IP exceeds 10 requests/minute
+    // Rate limit check — returns 429 if IP exceeds 8 requests/minute
     const ip = req.ip || req.connection.remoteAddress || "unknown";
     if (isRateLimited(ip)) {
       return res.status(429).json({
@@ -200,7 +221,7 @@ router.post("/", async (req, res) => {
       ],
       generationConfig: {
         temperature:     0.5,  // balanced — not too creative, not too rigid
-        maxOutputTokens: 200,  // keep responses short
+        maxOutputTokens: 200,  // keep responses short (fewer tokens = fewer quota hits)
         topK:            10,
         topP:            0.9,
       },
@@ -212,16 +233,27 @@ router.post("/", async (req, res) => {
       ],
     };
 
-    // Call Gemini API with key in query string
-    const response = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(geminiBody),
-    });
+    // Call Gemini API with automatic retry on 429 quota errors
+    const response = await fetchWithRetry(
+      `${GEMINI_URL}?key=${apiKey}`,
+      {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(geminiBody),
+      },
+      2,     // retry up to 2 times
+      5000   // wait 5 seconds between retries
+    );
 
     if (!response.ok) {
-      const errData = await response.json();
+      const errData = await response.json().catch(() => ({}));
       console.error("Gemini API error:", errData);
+
+      // Return friendly 429 message so Chatbot.jsx can display it nicely
+      if (response.status === 429) {
+        return res.status(429).json({ message: "AI is busy right now. Please wait a moment and try again." });
+      }
+
       return res.status(500).json({ message: "AI service error. Please try again." });
     }
 
