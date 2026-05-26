@@ -20,7 +20,7 @@ const SUGGESTIONS = [
 // Client-side rate limiting constants
 // Prevents users from exhausting the Gemini free tier quota
 const MAX_MESSAGES    = 5;  // max messages per session before showing limit warning
-const COOLDOWN_SECS   = 10; // seconds to wait between messages
+const COOLDOWN_SECS   = 5; // seconds to wait between messages
 
 export default function Chatbot() {
   // open — controls whether the chat window is visible
