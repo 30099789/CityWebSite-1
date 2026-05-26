@@ -1,41 +1,34 @@
-// routes/uploadRouter.js
-// Handles image uploads — protected, admin/staff only
+// uploadRouter.js
+// Stores uploaded images as Base64 strings in memory
+// No disk storage — avoids Render ephemeral filesystem wipe on redeploy
+// Images stored directly in MongoDB via the event/service imageUrl field
 
 const express = require("express");
 const router  = express.Router();
 const multer  = require("multer");
-const path    = require("path");
-const fs      = require("fs");
 const { protect, requireAdmin } = require("../middleware/auth");
 
-// Create uploads folder if it doesn't exist
-const uploadDir = path.join(__dirname, "../uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-// Multer storage config
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename:    (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
+// Use memory storage — file never touches disk
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits:  { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  fileFilter: (_req, file, cb) => {
+    const allowed = /jpeg|jpg|png|gif|webp/;
+    const ok = allowed.test(file.mimetype);
+    ok ? cb(null, true) : cb(new Error("Images only"));
   },
 });
 
-// File filter — images only
-const fileFilter = (req, file, cb) => {
-  const allowed = /jpeg|jpg|png|gif|webp/;
-  const extOk   = allowed.test(path.extname(file.originalname).toLowerCase());
-  const mimeOk  = allowed.test(file.mimetype);
-  if (extOk && mimeOk) cb(null, true);
-  else cb(new Error("Only image files are allowed (jpeg, jpg, png, gif, webp)"));
-};
-
-const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
-
-// POST /api/upload — admin/staff only
+// POST /api/upload — converts image to Base64 data URL and returns it
+// Client stores this directly in MongoDB as imageUrl
 router.post("/", protect, requireAdmin, upload.single("image"), (req, res) => {
-  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-  res.json({ imageUrl: `/uploads/${req.file.filename}` });
+  if (!req.file) return res.status(400).json({ message: "No image provided." });
+
+  // Convert buffer to Base64 data URL — can be used directly in <img src>
+  const base64 = req.file.buffer.toString("base64");
+  const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
+
+  res.json({ imageUrl: dataUrl });
 });
 
 module.exports = router;
