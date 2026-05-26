@@ -14,7 +14,7 @@ const Announcement = require("../models/Announcement");
 
 // ── Gemini API config ─────────────────────────────────────────────────
 // gemini-2.0-flash-lite — free tier: 1,500 req/day, 30 RPM (most generous free model)
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent";
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
 // ── Rate limiting ─────────────────────────────────────────────────────
 // Simple in-memory rate limiter — no extra npm packages needed
