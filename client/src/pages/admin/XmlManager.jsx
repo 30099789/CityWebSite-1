@@ -76,15 +76,17 @@ function sanitiseEvent(item) {
 }
 
 function sanitiseService(item) {
+  // Strip all non-digits from phone and pad/truncate to 10 digits
+  const rawPhone = (item["contact.phone"] || item.phone || "0800000000").replace(/\D/g, "");
+  const phone    = rawPhone.length === 10 ? rawPhone : "0800000000";
+  const email    = (item["contact.email"] || item.email || "admin@citylink.gov").trim();
+
   return {
     title:       (item.title       || "").trim() || "Untitled Service",
     description: (item.description || "").trim() || "No description provided",
     category:    (item.category    || "").trim() || "General",
-    status:      (item.status      || "").trim() || "Active",
-    contact: {
-      phone: (item["contact.phone"] || item.phone || "").trim(),
-      email: (item["contact.email"] || item.email || "").trim(),
-    },
+    imageUrl:    (item.imageUrl    || "").trim(),
+    contact:     { phone, email },
   };
 }
 
