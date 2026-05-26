@@ -45,16 +45,26 @@ function parseXMLItems(doc, tag) {
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function XmlManager() {
   const fileRef = useRef();
-  const [exporting, setExporting]   = useState(false);
-  const [importing, setImporting]   = useState(false);
+  const [exporting, setExporting]       = useState(false);
+  const [importing, setImporting]       = useState(false);
   const [importResult, setImportResult] = useState(null);
-  const [toast, setToast]           = useState(null);
-  const [preview, setPreview]       = useState(null); // parsed XML preview before confirming import
-  const [pendingData, setPendingData] = useState(null);
+  const [toast, setToast]               = useState(null);
+  const [preview, setPreview]           = useState(null);
+  const [pendingData, setPendingData]   = useState(null);
 
   function showToast(msg, type = "success") {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 4000);
+  }
+
+  // ── Auth header helper ────────────────────────────────────────────────────
+  // Reads JWT token from localStorage and returns headers for authenticated requests
+  function authHeaders() {
+    const token = localStorage.getItem("citylink_token");
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    };
   }
 
   // ── EXPORT ──────────────────────────────────────────────────────────────────
@@ -62,11 +72,11 @@ export default function XmlManager() {
     setExporting(true);
     try {
       const [evRes, anRes, svRes, bkRes, fbRes] = await Promise.all([
-        fetch(`${BASE_URL}/events`),
-        fetch(`${BASE_URL}/announcements`),
-        fetch(`${BASE_URL}/services`),
-        fetch(`${BASE_URL}/bookings`),
-        fetch(`${BASE_URL}/feedback`),
+        fetch(`${BASE_URL}/events`,        { headers: authHeaders() }),
+        fetch(`${BASE_URL}/announcements`, { headers: authHeaders() }),
+        fetch(`${BASE_URL}/services`,      { headers: authHeaders() }),
+        fetch(`${BASE_URL}/bookings`,      { headers: authHeaders() }),
+        fetch(`${BASE_URL}/feedback`,      { headers: authHeaders() }),
       ]);
 
       const data = {
@@ -146,7 +156,8 @@ export default function XmlManager() {
         try {
           const res = await fetch(`${BASE_URL}/${endpoint}`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            // Auth header required — admin-only endpoints reject requests without JWT
+            headers: authHeaders(),
             body: JSON.stringify(clean),
           });
           res.ok ? ok++ : fail++;
@@ -167,7 +178,10 @@ export default function XmlManager() {
       setImportResult(results);
       setPreview(null);
       setPendingData(null);
-      showToast(`Import complete — ${results.success} records added.${results.failed > 0 ? ` ${results.failed} failed.` : ""}`, results.failed > 0 ? "error" : "success");
+      showToast(
+        `Import complete — ${results.success} records added.${results.failed > 0 ? ` ${results.failed} failed.` : ""}`,
+        results.failed > 0 ? "error" : "success"
+      );
     } catch {
       showToast("Import failed. Please try again.", "error");
     } finally {
