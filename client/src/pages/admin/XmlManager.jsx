@@ -42,6 +42,71 @@ function parseXMLItems(doc, tag) {
   });
 }
 
+// ── Record sanitisers ──────────────────────────────────────────────────────────
+// XML sends everything as strings — these functions clean and validate each
+// record type before POSTing to the API, filling in defaults for missing fields
+
+function sanitiseAnnouncement(item) {
+  return {
+    title:    (item.title    || "").trim() || "Untitled",
+    summary:  (item.summary  || "").trim() || "No summary provided",
+    content:  (item.content  || item.summary || "").trim() || "No content provided",
+    date:     item.date      || new Date().toISOString(),
+    category: (item.category || "").trim() || "General",
+    audience: (item.audience || "").trim() || "All Residents",
+    author:   (item.author   || "").trim() || "Admin",
+    priority: ["Notice", "Update", "Alert"].includes(item.priority) ? item.priority : "Notice",
+    status:   ["Draft", "Published", "Scheduled", "Archived"].includes(item.status) ? item.status : "Draft",
+  };
+}
+
+function sanitiseEvent(item) {
+  return {
+    title:       (item.title    || "").trim() || "Untitled Event",
+    description: (item.description || "").trim() || "No description provided",
+    date:        item.date      || new Date().toISOString(),
+    time:        (item.time     || "").trim() || "TBA",
+    location:    (item.location || "").trim() || "TBA",
+    category:    (item.category || "").trim() || "General",
+    capacity:    parseInt(item.capacity) || 0,
+    booked:      parseInt(item.booked)   || 0,
+    status:      (item.status   || "").trim() || "Active",
+    image:       (item.image    || "").trim(),
+  };
+}
+
+function sanitiseService(item) {
+  return {
+    title:       (item.title       || "").trim() || "Untitled Service",
+    description: (item.description || "").trim() || "No description provided",
+    category:    (item.category    || "").trim() || "General",
+    status:      (item.status      || "").trim() || "Active",
+    contact: {
+      phone: (item["contact.phone"] || item.phone || "").trim(),
+      email: (item["contact.email"] || item.email || "").trim(),
+    },
+  };
+}
+
+function sanitiseBooking(item) {
+  return {
+    event:  item.event  || item.eventId || undefined,
+    user:   item.user   || item.userId  || undefined,
+    status: (item.status || "").trim()  || "Confirmed",
+    seats:  parseInt(item.seats) || 1,
+  };
+}
+
+function sanitiseFeedback(item) {
+  return {
+    name:    (item.name    || "").trim() || "Anonymous",
+    email:   (item.email   || "").trim(),
+    message: (item.message || "").trim() || "No message provided",
+    rating:  parseInt(item.rating) || 3,
+    status:  (item.status  || "").trim() || "Pending",
+  };
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function XmlManager() {
   const fileRef = useRef();
@@ -57,7 +122,6 @@ export default function XmlManager() {
     setTimeout(() => setToast(null), 4000);
   }
 
-  // ── Auth header helper ────────────────────────────────────────────────────
   // Reads JWT token from localStorage and returns headers for authenticated requests
   function authHeaders() {
     const token = localStorage.getItem("citylink_token");
@@ -148,17 +212,18 @@ export default function XmlManager() {
     setImporting(true);
     const results = { success: 0, failed: 0, collections: {} };
 
-    async function importCollection(items, endpoint, label) {
+    async function importCollection(items, endpoint, label, sanitise) {
       let ok = 0, fail = 0;
       for (const item of items) {
         // Remove _id and __v so MongoDB creates new documents
-        const { _id, __v, ...clean } = item;
+        // Then sanitise — convert types and fill in required field defaults
+        const { _id, __v, ...raw } = item;
+        const clean = sanitise(raw);
         try {
           const res = await fetch(`${BASE_URL}/${endpoint}`, {
-            method: "POST",
-            // Auth header required — admin-only endpoints reject requests without JWT
+            method:  "POST",
             headers: authHeaders(),
-            body: JSON.stringify(clean),
+            body:    JSON.stringify(clean),
           });
           res.ok ? ok++ : fail++;
         } catch { fail++; }
@@ -169,11 +234,11 @@ export default function XmlManager() {
     }
 
     try {
-      if (pendingData.events.length)        await importCollection(pendingData.events,        "events",        "Events");
-      if (pendingData.announcements.length) await importCollection(pendingData.announcements, "announcements", "Announcements");
-      if (pendingData.services.length)      await importCollection(pendingData.services,      "services",      "Services");
-      if (pendingData.bookings.length)      await importCollection(pendingData.bookings,      "bookings",      "Bookings");
-      if (pendingData.feedback.length)      await importCollection(pendingData.feedback,      "feedback",      "Feedback");
+      if (pendingData.announcements.length) await importCollection(pendingData.announcements, "announcements", "Announcements", sanitiseAnnouncement);
+      if (pendingData.events.length)        await importCollection(pendingData.events,        "events",        "Events",         sanitiseEvent);
+      if (pendingData.services.length)      await importCollection(pendingData.services,      "services",      "Services",       sanitiseService);
+      if (pendingData.bookings.length)      await importCollection(pendingData.bookings,      "bookings",      "Bookings",       sanitiseBooking);
+      if (pendingData.feedback.length)      await importCollection(pendingData.feedback,      "feedback",      "Feedback",       sanitiseFeedback);
 
       setImportResult(results);
       setPreview(null);
@@ -280,7 +345,6 @@ export default function XmlManager() {
               Choose XML File
             </button>
           ) : (
-            // Preview before confirming
             <div className="space-y-4">
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">File contents detected</p>
