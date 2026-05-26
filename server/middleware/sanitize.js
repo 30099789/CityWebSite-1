@@ -1,64 +1,54 @@
-const express  = require("express");
-const mongoose = require("mongoose");
-const cors     = require("cors");
-const path     = require("path");
-require("dotenv").config();
+// middleware/sanitize.js — XSS input sanitization
+// Strips <script> tags and dangerous HTML from all incoming request body fields
+// Applied globally in server.js before all routes
 
-const sanitize              = require("./middleware/sanitize");
-const servicesRouter        = require("./routes/servicesRouter");
-const announcementsRouter   = require("./routes/announcementsRouter");
-const eventRoutes           = require("./routes/eventRoutes");
-const userRoutes            = require("./routes/userRoutes");
-const bookingsRouter        = require("./routes/bookingsRouter");
-const serviceRequestsRouter = require("./routes/serviceRequestsRouter");
-const xmlRouter             = require("./routes/xmlRouter");
-const feedbackRouter        = require("./routes/feedbackRouter");
-const contactRouter         = require("./routes/contactRouter");
-const chatRouter            = require("./routes/chatRouter");
-const uploadRouter          = require("./routes/uploadRouter");
+function escapeHtml(str) {
+  if (typeof str !== "string") return str;
+  return str
+    .replace(/&/g,  "&amp;")
+    .replace(/</g,  "&lt;")
+    .replace(/>/g,  "&gt;")
+    .replace(/"/g,  "&quot;")
+    .replace(/'/g,  "&#x27;")
+    .replace(/\//g, "&#x2F;");
+}
 
-const app = express();
+function stripScripts(str) {
+  if (typeof str !== "string") return str;
+  // Remove <script>...</script> blocks
+  return str
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    // Remove on* event handlers (onclick, onload etc.)
+    .replace(/\son\w+\s*=\s*["'][^"']*["']/gi, "")
+    // Remove javascript: protocol
+    .replace(/javascript:/gi, "")
+    // Remove data: protocol
+    .replace(/data:/gi, "")
+    .trim();
+}
 
-app.use(cors());
-// Increased to 10mb to support Base64 image uploads stored in MongoDB
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+function sanitizeValue(val) {
+  if (typeof val === "string") return stripScripts(val);
+  if (Array.isArray(val))     return val.map(sanitizeValue);
+  if (val && typeof val === "object") return sanitizeObject(val);
+  return val;
+}
 
-// Upload route BEFORE sanitize middleware
-// sanitize strips "data:" from strings which breaks Base64 image data URLs
-app.use("/api/upload", uploadRouter);
+function sanitizeObject(obj) {
+  if (!obj || typeof obj !== "object") return obj;
+  const clean = {};
+  for (const [key, val] of Object.entries(obj)) {
+    clean[key] = sanitizeValue(val);
+  }
+  return clean;
+}
 
-app.use(sanitize);
+// Express middleware — sanitizes req.body in place
+function sanitize(req, res, next) {
+  if (req.body && typeof req.body === "object") {
+    req.body = sanitizeObject(req.body);
+  }
+  next();
+}
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use("/images",  express.static(path.join(__dirname, "../client/public/images")));
-
-app.use("/api/services",         servicesRouter);
-app.use("/api/announcements",    announcementsRouter);
-app.use("/api/events",           eventRoutes);
-app.use("/api/users",            userRoutes);
-app.use("/api/bookings",         bookingsRouter);
-app.use("/api/service-requests", serviceRequestsRouter);
-app.use("/api/xml",              xmlRouter);
-app.use("/api/feedback",         feedbackRouter);
-app.use("/api/contact",          contactRouter);
-app.use("/api/chat",             chatRouter);
-
-app.get("/", (req, res) => res.send("CityLink backend is running"));
-
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: "Internal server error" });
-});
-
-mongoose
-  .connect(process.env.MONGO_URI || "mongodb://localhost:27017/citylink")
-  .then(() => {
-    console.log("MongoDB connected");
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-  })
-  .catch((err) => {
-    console.error("Database connection failed:", err.message);
-    process.exit(1);
-  });
+module.exports = sanitize;

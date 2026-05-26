@@ -23,12 +23,16 @@ app.use(cors());
 // Increased to 10mb to support Base64 image uploads stored in MongoDB
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Upload route BEFORE sanitize middleware
+// sanitize strips "data:" from strings which breaks Base64 image data URLs
+app.use("/api/upload", uploadRouter);
+
 app.use(sanitize);
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/images",  express.static(path.join(__dirname, "../client/public/images")));
 
-app.use("/api/upload",           uploadRouter);
 app.use("/api/services",         servicesRouter);
 app.use("/api/announcements",    announcementsRouter);
 app.use("/api/events",           eventRoutes);
