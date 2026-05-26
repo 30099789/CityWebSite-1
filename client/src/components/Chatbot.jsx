@@ -1,15 +1,14 @@
 // Chatbot.jsx
 // Floating AI chat assistant — appears bottom right of every page
-// Powered by Google Gemini API (gemini-1.5-flash) via the server route POST /api/chat
+// Powered by Google Gemini API (gemini-2.5-flash-preview-05-20) via the server route POST /api/chat
 // Auto-opens on the home page after 3 seconds, stays closed on all other pages
-// Client-side rate limiting: max 5 messages per session, 10 second cooldown between messages
+// Client-side rate limiting: max 5 messages per session, 5 second cooldown between messages
 
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import BASE_URL from "../services/api";
 
 // Quick suggestion buttons shown when the chat first opens
-// Clicking one sends that question immediately without typing
 const SUGGESTIONS = [
   "How do I book an event?",
   "What services are available?",
@@ -17,39 +16,27 @@ const SUGGESTIONS = [
   "Is the portal free?",
 ];
 
-// Client-side rate limiting constants
-// Prevents users from exhausting the Gemini free tier quota
-const MAX_MESSAGES    = 5;  // max messages per session before showing limit warning
-const COOLDOWN_SECS   = 5; // seconds to wait between messages
+const MAX_MESSAGES  = 5;
+const COOLDOWN_SECS = 5;
 
 export default function Chatbot() {
-  // open — controls whether the chat window is visible
-  const [open, setOpen] = useState(false);
-
-  // messages — the full conversation history sent to the AI each time
-  // Starts with a greeting from the assistant
+  const [open, setOpen]     = useState(false);
   const [messages, setMessages] = useState([
     { role: "assistant", content: "Hi! I'm the CityLink AI assistant. How can I help you today?" },
   ]);
 
-  const [input, setInput]       = useState("");     // current text in the input box
-  const [loading, setLoading]   = useState(false);  // true while waiting for AI response
-  const [unread, setUnread]     = useState(0);      // unread count shown on the toggle button
-  const [error, setError]       = useState("");     // error message shown in the chat
-
-  // Client-side rate limiting state
-  const [msgCount, setMsgCount]     = useState(0);  // number of messages sent this session
-  const [cooldown, setCooldown]     = useState(0);  // seconds remaining in cooldown
-  const cooldownRef                 = useRef(null); // timer reference for cooldown countdown
-
-  // hasAutoOpened — prevents the chat from auto-opening more than once per session
+  const [input, setInput]       = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [unread, setUnread]     = useState(0);
+  const [error, setError]       = useState("");
+  const [msgCount, setMsgCount] = useState(0);
+  const [cooldown, setCooldown] = useState(0);
+  const cooldownRef             = useRef(null);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
+  const bottomRef = useRef(null);
+  const location  = useLocation();
 
-  const bottomRef = useRef(null);  // reference to the invisible div at the bottom of messages
-  const location  = useLocation(); // used to check what page the user is on
-
-  // Auto-opens the chat 3 seconds after landing on the home page
-  // Only triggers once — hasAutoOpened prevents it from firing again
+  // Auto-open on home page after 3 seconds
   useEffect(() => {
     if (location.pathname === "/" && !hasAutoOpened) {
       const timer = setTimeout(() => {
@@ -60,8 +47,7 @@ export default function Chatbot() {
     }
   }, [location.pathname]);
 
-  // Scrolls to the bottom of the message list whenever new messages arrive
-  // Also clears the unread badge when the chat is opened
+  // Scroll to bottom and clear unread badge when opened
   useEffect(() => {
     if (open) {
       setUnread(0);
@@ -74,36 +60,25 @@ export default function Chatbot() {
     return () => { if (cooldownRef.current) clearInterval(cooldownRef.current); };
   }, []);
 
-  // ── Start cooldown timer ──────────────────────────────────────────
-  // Counts down from COOLDOWN_SECS to 0 after each message
-  // Prevents rapid-fire requests to the Gemini API
   function startCooldown() {
     setCooldown(COOLDOWN_SECS);
     cooldownRef.current = setInterval(() => {
       setCooldown((prev) => {
-        if (prev <= 1) {
-          clearInterval(cooldownRef.current);
-          return 0;
-        }
+        if (prev <= 1) { clearInterval(cooldownRef.current); return 0; }
         return prev - 1;
       });
     }, 1000);
   }
 
-  // ── Send message ──────────────────────────────────────────────────
-  // Accepts either a typed message (from the input box) or a pre-written suggestion
-  // Client-side rate limiting applied before sending to server
   async function send(text) {
     const q = (text || input).trim();
     if (!q || loading) return;
 
-    // Client-side rate limit — max messages per session
     if (msgCount >= MAX_MESSAGES) {
-      setError(`You've reached the limit of ${MAX_MESSAGES} messages per session. Please refresh the page to start a new session.`);
+      setError(`You've reached the limit of ${MAX_MESSAGES} messages per session. Please refresh to start a new session.`);
       return;
     }
 
-    // Client-side cooldown — wait between messages
     if (cooldown > 0) {
       setError(`Please wait ${cooldown} seconds before sending another message.`);
       return;
@@ -115,11 +90,9 @@ export default function Chatbot() {
     const newMessages = [...messages, { role: "user", content: q }];
     setMessages(newMessages);
     setLoading(true);
-    setMsgCount((n) => n + 1); // increment session message count
+    setMsgCount((n) => n + 1);
 
     try {
-      // Send conversation history to server
-      // Server fetches live DB data and forwards to Gemini API
       const res = await fetch(`${BASE_URL}/chat`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -128,7 +101,6 @@ export default function Chatbot() {
 
       const data = await res.json();
 
-      // Handle server-side rate limit (429) or quota exceeded
       if (res.status === 429) {
         setError("AI is busy right now. Please wait a moment and try again.");
         setMessages((prev) => prev.slice(0, -1));
@@ -140,8 +112,6 @@ export default function Chatbot() {
 
       setMessages((prev) => [...prev, { role: "assistant", content: data.answer }]);
       if (!open) setUnread((n) => n + 1);
-
-      // Start cooldown after successful message
       startCooldown();
 
     } catch (err) {
@@ -154,13 +124,9 @@ export default function Chatbot() {
   }
 
   function handleKey(e) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      send();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   }
 
-  // Input is disabled if: loading, in cooldown, or session limit reached
   const inputDisabled = loading || cooldown > 0 || msgCount >= MAX_MESSAGES;
 
   return (
@@ -168,8 +134,9 @@ export default function Chatbot() {
 
       {/* Chat window */}
       {open && (
-        <div className="w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
-          style={{ height: "460px" }}>
+        <div
+          className="w-80 max-w-[calc(100vw-2.5rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
+          style={{ height: "min(460px, calc(100vh - 6rem))" }}>
 
           {/* Header */}
           <div className="bg-slate-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
@@ -177,7 +144,6 @@ export default function Chatbot() {
               <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">AI</div>
               <div>
                 <p className="text-white text-sm font-semibold leading-tight">CityLink Assistant</p>
-                {/* Show message count remaining */}
                 <p className="text-slate-400 text-xs">
                   {msgCount >= MAX_MESSAGES ? "Session limit reached" : `${MAX_MESSAGES - msgCount} messages remaining`}
                 </p>
@@ -231,7 +197,7 @@ export default function Chatbot() {
               </div>
             )}
 
-            {/* Session limit reached message */}
+            {/* Session limit reached */}
             {msgCount >= MAX_MESSAGES && !error && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-xs text-amber-700">
                 Session limit reached. Refresh the page to start a new conversation.
@@ -273,7 +239,6 @@ export default function Chatbot() {
               disabled={!input.trim() || inputDisabled}
               className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center hover:bg-slate-700 transition disabled:opacity-40"
               aria-label="Send message">
-              {/* Cooldown countdown shown inside send button */}
               {cooldown > 0 ? (
                 <span className="text-xs font-bold">{cooldown}</span>
               ) : (
