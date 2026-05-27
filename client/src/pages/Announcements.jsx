@@ -1,6 +1,6 @@
 // Announcements.jsx — Sprint 3 Week 10
-// Assessment requirement: XML primary source, DB fallback
-// Tries public/xml/announcements.xml first, falls back to MongoDB API
+// Assessment requirement: XML primary source, merged with DB
+// Loads from both announcements.xml AND MongoDB, merges results
 import { useEffect, useState } from "react";
 import { getAnnouncementsXML } from "../services/xmlService";
 import { fetchAnnouncements } from "../services/announcementService";
@@ -20,23 +20,30 @@ export default function Announcements() {
   const [items, setItems]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
-  const [source, setSource]   = useState(null); // "xml" | "db"
+  const [source, setSource]   = useState(null); // "xml" | "db" | "xml+db"
   const [filter, setFilter]   = useState("All");
 
   useEffect(() => {
     async function load() {
       try {
-        // ── 1. Try XML first (assessment requirement) ──────────────────────
-        const xmlItems = await getAnnouncementsXML();
-        if (xmlItems && xmlItems.length > 0) {
-          setItems(xmlItems.filter((a) => a.status === "published"));
-          setSource("xml");
-          return;
-        }
-        // ── 2. Fall back to MongoDB API ────────────────────────────────────
-        const dbItems = await fetchAnnouncements();
-        setItems(dbItems.filter((a) => a.status === "published"));
-        setSource("db");
+        // ── Load from both XML and MongoDB simultaneously ──────────────────
+        // Assessment requirement: XML integration + live DB data
+        // Both sources are merged so admin-created announcements always appear
+        const [xmlItems, dbItems] = await Promise.all([
+          getAnnouncementsXML().catch(() => []),
+          fetchAnnouncements().catch(() => []),
+        ]);
+
+        // Filter published from both sources (case-insensitive status check)
+        const xml = (xmlItems || []).filter((a) => a.status?.toLowerCase() === "published");
+        const db  = (dbItems  || []).filter((a) => a.status?.toLowerCase() === "published");
+
+        // Merge — DB items first (newest admin entries), then XML items
+        setItems([...db, ...xml]);
+        setSource(
+          xml.length > 0 && db.length > 0 ? "xml+db" :
+          xml.length > 0 ? "xml" : "db"
+        );
       } catch {
         setError("Could not load announcements. Please try again later.");
       } finally {
@@ -60,12 +67,14 @@ export default function Announcements() {
           {/* Source badge — satisfies assessment evidence of XML integration */}
           {source && (
             <span className={`inline-flex items-center gap-1.5 mt-3 text-xs font-semibold px-2.5 py-1 rounded-lg border ${
-              source === "xml"
+              source === "xml" || source === "xml+db"
                 ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                 : "bg-slate-100 text-slate-500 border-slate-200"
             }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${source === "xml" ? "bg-emerald-500" : "bg-slate-400"}`} />
-              {source === "xml" ? "Content loaded from announcements.xml" : "Content loaded from database"}
+              <span className={`w-1.5 h-1.5 rounded-full ${source === "xml" || source === "xml+db" ? "bg-emerald-500" : "bg-slate-400"}`} />
+              {source === "xml+db" ? "Content loaded from XML and database" :
+               source === "xml"    ? "Content loaded from announcements.xml" :
+               "Content loaded from database"}
             </span>
           )}
         </div>
@@ -129,7 +138,7 @@ export default function Announcements() {
         {!loading && !error && visible.length > 0 && (
           <div className="space-y-4">
             {visible.map((item, i) => (
-              <AnnouncementCard key={item._id || item.id} item={item} index={i} />
+              <AnnouncementCard key={item._id || item.id || i} item={item} index={i} />
             ))}
           </div>
         )}
