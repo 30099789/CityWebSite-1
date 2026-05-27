@@ -13,8 +13,9 @@ export async function fetchUsers() {
 }
 
 // POST create user — admin only
+// Uses /admin-create endpoint so admin stays logged in (register endpoint returns a new token)
 export async function createUser(data) {
-  const res = await authFetch(URL, { method: "POST", body: JSON.stringify(data) });
+  const res = await authFetch(`${URL}/admin-create`, { method: "POST", body: JSON.stringify(data) });
   if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || "Failed to create user"); }
   return res.json();
 }

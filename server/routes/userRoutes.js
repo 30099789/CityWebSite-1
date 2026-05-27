@@ -59,6 +59,49 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// ── POST /api/users/admin-create ─────────────────────────────────────
+// Admin only — creates a new user with any role (staff, admin, resident)
+// Used by ManageUsers admin page to create staff/admin accounts
+router.post("/admin-create", protect, requireAdmin, async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+    if (!name?.trim() || !email?.trim() || !password) {
+      return res.status(400).json({ message: "Name, email and password are required" });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+    const existing = await User.findOne({ email: email.toLowerCase() });
+    if (existing) {
+      return res.status(400).json({ message: "An account with this email already exists" });
+    }
+    const hashed = await bcrypt.hash(password, 10);
+    const user   = new User({
+      name:     name.trim(),
+      email:    email.toLowerCase().trim(),
+      password: hashed,
+      role:     role || "resident",
+    });
+    const saved = await user.save();
+    res.status(201).json({ _id: saved._id, name: saved.name, email: saved.email, role: saved.role });
+  } catch {
+    res.status(500).json({ message: "Failed to create user" });
+  }
+});
+
+// ── GET /api/users ────────────────────────────────────────────────────
+// Returns all users for admin dashboard — admin/staff only
+// IMPORTANT: must be defined BEFORE /:id route
+// otherwise Express matches "users" as an :id param and returns 404
+router.get("/", protect, requireAdmin, async (req, res) => {
+  try {
+    const users = await User.find({}, "-password").sort({ createdAt: -1 });
+    res.json(users);
+  } catch {
+    res.status(500).json({ message: "Failed to fetch users" });
+  }
+});
+
 // ── GET /api/users/:id ────────────────────────────────────────────────
 // Returns a single user by ID — used by Profile page to load latest data
 // Requires JWT token — user can only fetch their own profile
@@ -70,18 +113,6 @@ router.get("/:id", protect, async (req, res) => {
     res.json(user);
   } catch {
     res.status(500).json({ message: "Failed to fetch user" });
-  }
-});
-
-// ── GET /api/users ────────────────────────────────────────────────────
-// Returns all users for admin dashboard — admin/staff only
-// Excludes password field from all results
-router.get("/", protect, requireAdmin, async (req, res) => {
-  try {
-    const users = await User.find({}, "-password").sort({ createdAt: -1 });
-    res.json(users);
-  } catch {
-    res.status(500).json({ message: "Failed to fetch users" });
   }
 });
 
