@@ -1,7 +1,7 @@
 // EventDetail.jsx — Sprint 3 Week 8
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Calendar, Clock, MapPin, Tag, Users } from "lucide-react";
+import { Calendar, Clock, MapPin, Tag } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import BASE_URL from "../services/api";
 
@@ -55,7 +55,6 @@ export default function EventDetail() {
         const data = await res.json();
         throw new Error(data.message || "Booking failed");
       }
-      setEvent((ev) => ({ ...ev, booked: (ev.booked || 0) + 1 }));
       setBooked(true);
     } catch (err) {
       setBookError(err.message);
@@ -75,8 +74,7 @@ export default function EventDetail() {
     </main>
   );
 
-  const isFull      = event.status === "Full" || (event.capacity > 0 && event.booked >= event.capacity);
-  const spotsLeft   = event.capacity - (event.booked || 0);
+  const isFull      = event.status === "Full";
   const dateDisplay = event.date
     ? new Date(event.date).toLocaleDateString("en-AU", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
     : "Date TBC";
@@ -104,11 +102,6 @@ export default function EventDetail() {
         <MetaItem icon={<Clock    size={18} className="text-slate-500" />} label="Time"     value={event.time || "Time TBC"} />
         <MetaItem icon={<MapPin   size={18} className="text-slate-500" />} label="Location" value={event.location} />
         <MetaItem icon={<Tag      size={18} className="text-slate-500" />} label="Category" value={event.category || "General"} />
-        {event.capacity > 0 && (
-          <MetaItem icon={<Users size={18} className="text-slate-500" />}
-            label="Availability"
-            value={isFull ? "Fully booked" : `${spotsLeft} of ${event.capacity} spots remaining`} />
-        )}
       </div>
 
       {event.description && (

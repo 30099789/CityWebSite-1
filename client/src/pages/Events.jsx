@@ -29,12 +29,6 @@ const MapPinIcon = () => (
   </svg>
 );
 
-const UsersIcon = () => (
-  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-  </svg>
-);
-
 const ArrowIcon = () => (
   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
@@ -146,10 +140,10 @@ export default function Events() {
 }
 
 function EventCard({ evt, index }) {
-  const eventId    = evt._id || evt.id;
-  const isFull     = evt.status === "Full" || (evt.capacity > 0 && evt.booked >= evt.capacity);
-  const spotsLeft  = evt.capacity > 0 ? evt.capacity - (evt.booked || 0) : null;
-  const dateStr    = evt.date
+  const eventId = evt._id || evt.id;
+  const isFull  = evt.status === "Full";
+
+  const dateStr = evt.date
     ? new Date(evt.date).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
     : "Date TBC";
 
@@ -163,13 +157,11 @@ function EventCard({ evt, index }) {
         <div className="relative h-44 overflow-hidden">
           <img src={evt.imageUrl} alt={evt.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-          {/* Status badge */}
           <div className="absolute top-3 right-3">
             <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-lg border backdrop-blur-sm bg-white/90 ${STATUS_STYLES[evt.status] || STATUS_STYLES.Upcoming}`}>
               {evt.status || "Upcoming"}
             </span>
           </div>
-          {/* Date chip on image */}
           <div className="absolute bottom-3 left-3">
             <span className="inline-flex items-center gap-1.5 bg-black/50 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg">
               <CalendarIcon />{dateStr}
@@ -186,13 +178,11 @@ function EventCard({ evt, index }) {
             </div>
             <p className="text-xs text-slate-400 font-semibold uppercase tracking-widest">{evt.category || "Event"}</p>
           </div>
-          {/* Status badge */}
           <div className="absolute top-3 right-3">
             <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-lg border ${STATUS_STYLES[evt.status] || STATUS_STYLES.Upcoming}`}>
               {evt.status || "Upcoming"}
             </span>
           </div>
-          {/* Date chip */}
           <div className="absolute bottom-3 left-3">
             <span className="inline-flex items-center gap-1.5 bg-white border border-slate-200 text-slate-600 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-sm">
               <CalendarIcon />{dateStr}
@@ -210,7 +200,7 @@ function EventCard({ evt, index }) {
           {evt.title}
         </h3>
 
-        {/* Meta */}
+        {/* Meta — no capacity shown */}
         <div className="space-y-1.5 mb-4 flex-1">
           {evt.time && (
             <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -222,26 +212,7 @@ function EventCard({ evt, index }) {
               <MapPinIcon /><span className="truncate">{evt.location}</span>
             </div>
           )}
-          {spotsLeft !== null && (
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <UsersIcon />
-              <span>{isFull ? "Fully booked" : `${spotsLeft} spots remaining`}</span>
-            </div>
-          )}
         </div>
-
-        {/* Capacity bar */}
-        {evt.capacity > 0 && (
-          <div className="mb-4">
-            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-slate-900 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, ((evt.booked || 0) / evt.capacity) * 100)}%` }}
-              />
-            </div>
-            <p className="text-xs text-slate-400 mt-1">{evt.booked || 0} / {evt.capacity} registered</p>
-          </div>
-        )}
 
         <Link
           to={`/events/${eventId}`}

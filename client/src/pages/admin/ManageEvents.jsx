@@ -16,7 +16,7 @@ const STATUS_COLORS = {
 
 const BLANK = {
   title: "", date: "", time: "", location: "",
-  description: "", capacity: "", status: "Upcoming", category: "", imageUrl: "",
+  description: "", status: "Upcoming", category: "", imageUrl: "",
 };
 
 export default function ManageEvents() {
@@ -52,9 +52,16 @@ export default function ManageEvents() {
 
   function openNew() { setForm(BLANK); setPreviewUrl(""); setEditing(null); setShowForm(true); }
   function openEdit(ev) {
-    setForm({ title: ev.title||"", date: ev.date||"", time: ev.time||"", location: ev.location||"",
-      description: ev.description||"", capacity: String(ev.capacity||""), status: ev.status||"Upcoming",
-      category: ev.category||"", imageUrl: ev.imageUrl||"" });
+    setForm({
+      title:       ev.title       || "",
+      date:        ev.date ? ev.date.slice(0, 10) : "",
+      time:        ev.time        || "",
+      location:    ev.location    || "",
+      description: ev.description || "",
+      status:      ev.status      || "Upcoming",
+      category:    ev.category    || "",
+      imageUrl:    ev.imageUrl    || "",
+    });
     setPreviewUrl(ev.imageUrl ? getImageSrc(ev.imageUrl) : "");
     setEditing(ev._id); setShowForm(true);
   }
@@ -84,7 +91,7 @@ export default function ManageEvents() {
     }
     setSaving(true);
     try {
-      const payload = { ...form, capacity: Number(form.capacity) || 0 };
+      const payload = { ...form };
       if (editing) {
         const updated = await updateEvent(editing, payload);
         setEvents((prev) => prev.map((ev) => ev._id === editing ? updated : ev));
@@ -181,11 +188,6 @@ export default function ManageEvents() {
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">Location *</label>
                 <input type="text" value={form.location} onChange={(e) => update("location", e.target.value)} placeholder="Venue name" className={fieldCls} />
               </div>
-              {/* Capacity */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Capacity</label>
-                <input type="number" value={form.capacity} onChange={(e) => update("capacity", e.target.value)} placeholder="0" className={fieldCls} />
-              </div>
               {/* Category */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">Category</label>
@@ -239,14 +241,13 @@ export default function ManageEvents() {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Event</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Date</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Location</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Capacity</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
                   <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filtered.length === 0 && (
-                  <tr><td colSpan="6" className="text-center py-10 text-slate-400 text-sm">No events found.</td></tr>
+                  <tr><td colSpan="5" className="text-center py-10 text-slate-400 text-sm">No events found.</td></tr>
                 )}
                 {filtered.map((ev) => (
                   <tr key={ev._id} className="hover:bg-slate-50 transition">
@@ -262,7 +263,6 @@ export default function ManageEvents() {
                     </td>
                     <td className="px-4 py-3.5 text-slate-500 hidden sm:table-cell">{ev.date}</td>
                     <td className="px-4 py-3.5 text-slate-500 hidden md:table-cell">{ev.location}</td>
-                    <td className="px-4 py-3.5 text-slate-500 hidden md:table-cell">{ev.booked || 0}/{ev.capacity || 0}</td>
                     <td className="px-4 py-3.5">
                       <select
                         value={ev.status}
