@@ -34,6 +34,18 @@ export default function EventDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  // Check if user already has a booking for this event on load
+  useEffect(() => {
+    if (!user || !id) return;
+    fetch(`${BASE_URL}/bookings/my?email=${encodeURIComponent(user.email)}`)
+      .then((r) => r.json())
+      .then((bookings) => {
+        const alreadyBooked = bookings.some((b) => b.eventId === id || b.eventId?._id === id);
+        if (alreadyBooked) setBooked(true);
+      })
+      .catch(() => {});
+  }, [user, id]);
+
   async function handleBook() {
     if (!user) { navigate("/login"); return; }
     setBooking(true);
@@ -51,13 +63,16 @@ export default function EventDetail() {
           status:      "Confirmed",
         }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Booking failed");
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Booking failed");
       setBooked(true);
     } catch (err) {
-      setBookError(err.message);
+      // 409 = already booked — show as booked state rather than error
+      if (err.message === "You have already booked this event.") {
+        setBooked(true);
+      } else {
+        setBookError(err.message);
+      }
     } finally {
       setBooking(false);
     }
