@@ -261,7 +261,7 @@ export default function ManageEvents() {
                         <span className="font-medium text-slate-800">{ev.title}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 text-slate-500 hidden sm:table-cell">{ev.date}</td>
+                    <td className="px-4 py-3.5 text-slate-500 hidden sm:table-cell">{ev.date ? new Date(ev.date).toLocaleDateString("en-AU") : ""}</td>
                     <td className="px-4 py-3.5 text-slate-500 hidden md:table-cell">{ev.location}</td>
                     <td className="px-4 py-3.5">
                       <select

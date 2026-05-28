@@ -68,8 +68,6 @@ function sanitiseEvent(item) {
     time:        (item.time     || "").trim() || "TBA",
     location:    (item.location || "").trim() || "TBA",
     category:    (item.category || "").trim() || "General",
-    capacity:    parseInt(item.capacity) || 0,
-    booked:      parseInt(item.booked)   || 0,
     status:      (item.status   || "").trim() || "Upcoming",
     image:       (item.image    || "").trim(),
   };
