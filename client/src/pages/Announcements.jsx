@@ -1,20 +1,20 @@
-// Announcements.jsx — Sprint 3 Week 10
+// Announcements.jsx -- Sprint 3 Week 10
 // Assessment requirement: XML primary source, merged with DB
 // Loads from both announcements.xml AND MongoDB, merges results
 import { useEffect, useState } from "react";
 import { getAnnouncementsXML } from "../services/xmlService";
 import { fetchAnnouncements } from "../services/announcementService";
 
-// ── Priority display config ──────────────────────────────────────────────────
+// Priority display config
 // Maps priority values from both XML (high/medium/low) and MongoDB (Alert/Update/Notice)
-// to consistent colours and labels — handles both naming conventions
+// to consistent colours and labels -- handles both naming conventions
 const PRIORITY_CONFIG = {
-  high:   { bar: "bg-red-500",   badge: "bg-red-50 text-red-700 border-red-200",       label: "High"   },
-  medium: { bar: "bg-amber-500", badge: "bg-amber-50 text-amber-700 border-amber-200", label: "Medium" },
-  low:    { bar: "bg-slate-300", badge: "bg-slate-100 text-slate-500 border-slate-200", label: "Low"   },
-  Alert:  { bar: "bg-red-500",   badge: "bg-red-50 text-red-700 border-red-200",       label: "Alert"  },
-  Update: { bar: "bg-blue-500",  badge: "bg-blue-50 text-blue-700 border-blue-200",    label: "Update" },
-  Notice: { bar: "bg-amber-400", badge: "bg-amber-50 text-amber-700 border-amber-200", label: "Notice" },
+  high:   { bar: "bg-red-500",   badge: "bg-red-50 text-red-700 border-red-200",        label: "High"   },
+  medium: { bar: "bg-amber-500", badge: "bg-amber-50 text-amber-700 border-amber-200",  label: "Medium" },
+  low:    { bar: "bg-slate-300", badge: "bg-slate-100 text-slate-500 border-slate-200", label: "Low"    },
+  Alert:  { bar: "bg-red-500",   badge: "bg-red-50 text-red-700 border-red-200",        label: "Alert"  },
+  Update: { bar: "bg-blue-500",  badge: "bg-blue-50 text-blue-700 border-blue-200",     label: "Update" },
+  Notice: { bar: "bg-amber-400", badge: "bg-amber-50 text-amber-700 border-amber-200",  label: "Notice" },
 };
 
 const DEFAULT_PRIORITY = { bar: "bg-slate-300", badge: "bg-slate-100 text-slate-500 border-slate-200", label: "Notice" };
@@ -29,19 +29,18 @@ export default function Announcements() {
   useEffect(() => {
     async function load() {
       try {
-        // ── Load from both XML and MongoDB simultaneously ──────────────────
-        // Assessment requirement: XML integration + live DB data
-        // Both sources are merged so admin-created announcements always appear
+        // Load from both XML and MongoDB at the same time
+        // Assessment requirement: XML integration + live DB data merged together
         const [xmlItems, dbItems] = await Promise.all([
           getAnnouncementsXML().catch(() => []),
           fetchAnnouncements().catch(() => []),
         ]);
 
-        // Filter published from both sources (case-insensitive status check)
+        // Only show published items from both sources (case-insensitive check)
         const xml = (xmlItems || []).filter((a) => a.status?.toLowerCase() === "published");
         const db  = (dbItems  || []).filter((a) => a.status?.toLowerCase() === "published");
 
-        // Merge — DB items first (newest admin entries), then XML items
+        // DB items go first (newest admin entries), XML items follow
         setItems([...db, ...xml]);
         setSource(
           xml.length > 0 && db.length > 0 ? "xml+db" :
@@ -56,7 +55,7 @@ export default function Announcements() {
     load();
   }, []);
 
-  // Filter pills — uses XML-style priority names (high/medium/low)
+  // Filter pills use XML-style priority names (high/medium/low)
   // DB announcements use Alert/Update/Notice but are shown under All
   const priorities = ["All", "high", "medium", "low"];
   const visible = filter === "All" ? items : items.filter((a) => a.priority === filter);
@@ -69,7 +68,7 @@ export default function Announcements() {
         <div className="max-w-4xl mx-auto px-4 py-10">
           <h1 className="text-3xl font-bold text-slate-900 mb-1">Announcements</h1>
           <p className="text-slate-500">Stay up to date with the latest news and notices from CityLink Initiatives.</p>
-          {/* Source badge — satisfies assessment evidence of XML integration */}
+          {/* Source badge -- shows assessors that XML integration is working */}
           {source && (
             <span className={`inline-flex items-center gap-1.5 mt-3 text-xs font-semibold px-2.5 py-1 rounded-lg border ${
               source === "xml" || source === "xml+db"
@@ -107,7 +106,7 @@ export default function Announcements() {
           )}
         </div>
 
-        {/* Skeleton loading */}
+        {/* Skeleton loading state */}
         {loading && (
           <div className="space-y-3">
             {[...Array(4)].map((_, i) => (
@@ -124,10 +123,12 @@ export default function Announcements() {
           </div>
         )}
 
+        {/* Error state */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-4 text-sm text-red-600">{error}</div>
         )}
 
+        {/* Empty state */}
         {!loading && !error && visible.length === 0 && (
           <div className="text-center py-20">
             <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4 text-slate-300">
@@ -140,6 +141,7 @@ export default function Announcements() {
           </div>
         )}
 
+        {/* Announcement cards */}
         {!loading && !error && visible.length > 0 && (
           <div className="space-y-4">
             {visible.map((item, i) => (
@@ -152,9 +154,8 @@ export default function Announcements() {
   );
 }
 
-// ── Announcement Card ─────────────────────────────────────────────────────────
-// Assessment requirement: expandable accordion layout for announcements
-// Click to expand/collapse full content — accessible with aria-expanded
+// Expandable announcement card -- click to show or hide full content
+// Assessment requirement: accordion layout with aria-expanded for accessibility
 // Works for both XML-sourced and MongoDB-sourced announcements
 function AnnouncementCard({ item, index }) {
   const [open, setOpen] = useState(false);
@@ -166,8 +167,11 @@ function AnnouncementCard({ item, index }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-all duration-200"
       style={{ animationDelay: `${index * 50}ms` }}>
+
+      {/* Coloured top bar shows priority level */}
       <div className={`h-1 w-full ${cfg.bar}`} />
 
+      {/* Optional image banner */}
       {item.imageUrl && (
         <div className="relative h-44 overflow-hidden">
           <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
@@ -180,9 +184,11 @@ function AnnouncementCard({ item, index }) {
         </div>
       )}
 
-      <button onClick={() => setOpen((o) => !o)}
-        className="w-full text-left px-6 py-5 flex items-start justify-between gap-4 hover:bg-slate-50 transition-colors"
-        aria-expanded={open}  {/* Assessment requirement: WCAG accessible button with aria-expanded state */}>
+      {/* Click to expand -- aria-expanded tells screen readers whether the answer is visible */}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="w-full text-left px-6 py-5 flex items-start justify-between gap-4 hover:bg-slate-50 transition-colors">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             {!item.imageUrl && (
@@ -196,12 +202,14 @@ function AnnouncementCard({ item, index }) {
           <h3 className="text-base font-bold text-slate-900 leading-snug">{item.title}</h3>
           <p className="text-sm text-slate-500 mt-1 line-clamp-2">{item.summary}</p>
         </div>
+        {/* Chevron icon rotates when card is open */}
         <svg className={`w-5 h-5 text-slate-400 flex-shrink-0 transition-transform duration-200 mt-1 ${open ? "rotate-180" : ""}`}
           fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
+      {/* Expanded content -- only shown when card is open */}
       {open && (
         <div className="px-6 pb-6 border-t border-slate-100">
           {item.content ? (
@@ -209,7 +217,7 @@ function AnnouncementCard({ item, index }) {
           ) : (
             <p className="text-sm text-slate-400 italic mt-4">No additional details available.</p>
           )}
-          {item.author && <p className="text-xs text-slate-400 mt-4 pt-3 border-t border-slate-100">— {item.author}</p>}
+          {item.author && <p className="text-xs text-slate-400 mt-4 pt-3 border-t border-slate-100">-- {item.author}</p>}
         </div>
       )}
     </div>
