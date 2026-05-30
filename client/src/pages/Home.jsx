@@ -1,8 +1,13 @@
-// Home.jsx — hero landing page, fully mobile responsive
+// Home.jsx — Sprint 2/3
+// This is the landing page residents see when they first visit the portal
+// It shows a full-screen background image with navigation cards to each section
+// Cards link to: Services, Events, Announcements, Feedback and Contact
+
 import { Link } from "react-router-dom";
 import background from "./img/cityview.png";
 
-// Navigation cards shown on the hero — link to each main section
+// Quick-link cards shown on the home page
+// Each card has a title, a link and an icon (SVG path)
 const CARDS = [
   { title: "Services",      link: "/services",      icon: "M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" },
   { title: "Events",        link: "/events",        icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
@@ -13,18 +18,19 @@ const CARDS = [
 
 export default function Home() {
   return (
+    // Full screen hero section with the cityview background photo
     <main
       className="relative w-full min-h-screen flex items-center justify-center bg-center bg-cover overflow-hidden"
       style={{ backgroundImage: `url(${background})` }}>
 
-      {/* Dark overlay over the background image */}
+      {/* Dark layer over the photo so text is easy to read */}
       <div className="absolute inset-0 bg-black/55" />
 
-      {/* Hero content — centred vertically and horizontally */}
+      {/* Main content sits on top of the dark overlay */}
       <div className="relative z-10 w-full px-4 py-12 sm:py-16 max-w-5xl mx-auto text-center">
         <div className="bg-black/70 backdrop-blur-sm rounded-2xl px-5 py-8 sm:px-8 sm:py-10">
 
-          {/* Heading — scales down on small screens */}
+          {/* Portal title — gets bigger on larger screens */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-blue-400 mb-3 leading-tight">
             Smart Community Portal
           </h1>
@@ -37,14 +43,14 @@ export default function Home() {
             Access events, announcements, services and community feedback in one place.
           </p>
 
-          {/* Card grid — 2 columns on mobile, 3 on tablet, 5 on desktop */}
+          {/* Navigation cards — 2 columns on phone, 3 on tablet, 5 on desktop */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 max-w-4xl mx-auto">
             {CARDS.map(({ title, link, icon }) => (
               <Card key={link} title={title} link={link} icon={icon} />
             ))}
           </div>
 
-          {/* CTA buttons */}
+          {/* Two main action buttons at the bottom of the hero */}
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/events"
               className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition text-sm sm:text-base">
@@ -61,6 +67,8 @@ export default function Home() {
   );
 }
 
+// Individual navigation card — links to a portal page
+// Shows an icon and a label, glows slightly on hover
 function Card({ title, link, icon }) {
   return (
     <Link to={link}

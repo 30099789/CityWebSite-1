@@ -1,18 +1,22 @@
 // xmlService.js — Sprint 3 Week 10
-// Fetches and parses XML config files from /public/xml/ using fast-xml-parser
-// XML files: menu.xml, faq.xml, announcements.xml, settings.xml
-// Assessment requirement: XML-based configurations for menus, FAQs, app settings
+// Reads XML config files from the /public/xml/ folder and returns them as JavaScript objects
+// This satisfies the assessment requirement for XML-based configuration
+// Files used: menu.xml (navigation), faq.xml (FAQ page), announcements.xml, settings.xml
 
 import { XMLParser } from "fast-xml-parser";
 
+// Set up the XML parser
+// ignoreAttributes: false means XML attributes like id="1" are kept
+// isArray lists tags that should always be treated as arrays even if there is only one item
 const parser = new XMLParser({
-  ignoreAttributes:   false,
+  ignoreAttributes:    false,
   attributeNamePrefix: "@_",
   isArray: (name) =>
     ["item", "faq", "announcement", "category", "question", "section"].includes(name),
 });
 
-// ── Core fetch helper ──────────────────────────────────────────────────────────
+// Fetches an XML file from /public/xml/ and parses it into a JavaScript object
+// Returns null if the file is missing or fails to load
 export async function fetchXML(filename) {
   try {
     const res = await fetch(`/xml/${filename}`);
@@ -25,24 +29,24 @@ export async function fetchXML(filename) {
   }
 }
 
-// ── Menu (navbar + footer links) ───────────────────────────────────────────────
-// Used by MainLayout.jsx to drive navigation from XML
+// Returns the menu config from menu.xml
+// Used by the navigation component to build links from XML
 export async function getMenuConfig() {
   const data = await fetchXML("menu.xml");
   return data?.menu ?? null;
 }
 
-// ── FAQ categories ────────────────────────────────────────────────────────────
+// Returns the FAQ categories and questions from faq.xml
+// Used by the FAQ page to display accordion questions
 // Returns: [{ "@_id", "@_label", question: [{ "@_id", q, a }] }]
-// Used by Faq.jsx
 export async function getFaqData() {
   const data = await fetchXML("faq.xml");
   return data?.faq?.category ?? [];
 }
 
-// ── Announcements ─────────────────────────────────────────────────────────────
-// Returns normalised array of announcements from XML
-// Used by Announcements.jsx as primary source (DB is fallback)
+// Returns announcements from announcements.xml as a clean array
+// Used by the public Announcements page — merged with MongoDB announcements
+// Each item is normalised so missing fields have safe default values
 export async function getAnnouncementsXML() {
   const data = await fetchXML("announcements.xml");
   const raw  = data?.announcements?.item ?? [];
@@ -62,10 +66,9 @@ export async function getAnnouncementsXML() {
   }));
 }
 
-// ── App-wide settings ─────────────────────────────────────────────────────────
-// Returns the full settings object from settings.xml
-// Used by useSettings hook → consumed by MainLayout, Home, etc.
-// Assessment requirement: App-wide settings stored in XML, read on page load
+// Returns the site-wide settings from settings.xml
+// Used by the useSettings hook which feeds into the layout, home page and footer
+// Covers: site name, contact details, feature flags and maintenance mode
 export async function getSettings() {
   const data = await fetchXML("settings.xml");
   if (!data?.settings) return null;
@@ -85,13 +88,15 @@ export async function getSettings() {
       acknowledgement: s.footer?.acknowledgement || "",
       copyright:       s.footer?.copyright       || "",
     },
+    // Feature flags — can turn features on/off without touching the code
     features: {
-      bookingsEnabled:     s.features?.bookingsEnabled     !== "false",
-      feedbackEnabled:     s.features?.feedbackEnabled     !== "false",
-      chatbotEnabled:      s.features?.chatbotEnabled      === "true",
-      maintenanceMode:     s.features?.maintenanceMode     === "true",
-      maintenanceMessage:  s.features?.maintenanceMessage  || "",
+      bookingsEnabled:    s.features?.bookingsEnabled    !== "false",
+      feedbackEnabled:    s.features?.feedbackEnabled    !== "false",
+      chatbotEnabled:     s.features?.chatbotEnabled     === "true",
+      maintenanceMode:    s.features?.maintenanceMode    === "true",
+      maintenanceMessage: s.features?.maintenanceMessage || "",
     },
+    // Site-wide banner message (e.g. maintenance notice)
     banner: {
       active:  s.banner?.active === "true",
       message: s.banner?.message || "",

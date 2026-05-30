@@ -1,9 +1,14 @@
-// Login.jsx — Sprint 3 (polished with validation)
+// Login.jsx — Sprint 3
+// This is the sign in page for CityLink residents, staff and admins
+// It validates the email and password before sending to the server
+// After a successful login, admins and staff go to /admin, residents go to /
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Logo from "../components/Logo";
 
+// Simple regex to check if an email address looks valid
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Login() {
@@ -11,11 +16,12 @@ export default function Login() {
   const navigate   = useNavigate();
   const [email, setEmail]         = useState("");
   const [password, setPassword]   = useState("");
-  const [showPass, setShowPass]   = useState(false);
-  const [errors, setErrors]       = useState({});
-  const [apiError, setApiError]   = useState("");
-  const [loading, setLoading]     = useState(false);
+  const [showPass, setShowPass]   = useState(false);   // toggles password visibility
+  const [errors, setErrors]       = useState({});      // field-level validation errors
+  const [apiError, setApiError]   = useState("");      // error returned from the server
+  const [loading, setLoading]     = useState(false);   // true while waiting for login response
 
+  // Check that email and password are filled in correctly before submitting
   function validate() {
     const errs = {};
     if (!email.trim())                  errs.email    = "Email is required.";
@@ -25,6 +31,8 @@ export default function Login() {
     return errs;
   }
 
+  // Handles the form submit — validates first, then calls the login API
+  // On success, redirects admin/staff to the admin portal, residents to the home page
   async function handleSubmit(e) {
     e.preventDefault();
     setApiError("");
@@ -40,9 +48,11 @@ export default function Login() {
     }
   }
 
+  // Clears the error for a field as soon as the user starts typing in it
   function updateEmail(v)    { setEmail(v);    if (errors.email)    setErrors((e) => ({ ...e, email: "" })); }
   function updatePassword(v) { setPassword(v); if (errors.password) setErrors((e) => ({ ...e, password: "" })); }
 
+  // Input field styling — red border if there is a validation error, normal otherwise
   const inputClass = (field) =>
     `w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 transition ${
       errors[field]
@@ -54,6 +64,7 @@ export default function Login() {
     <main className="min-h-screen bg-slate-100 flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
 
+        {/* Back to home link */}
         <Link to="/" className="inline-flex items-center gap-1.5 mb-6 text-sm font-medium text-slate-500 hover:text-slate-900 transition">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -63,22 +74,21 @@ export default function Login() {
 
         <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8">
 
-          {/* Logo */}
+          {/* CityLink logo */}
           <div className="mb-7">
             <Logo variant="compact" />
           </div>
 
-          {/* Heading */}
           <h1 className="text-2xl font-bold text-slate-900 mb-1">Welcome back</h1>
           <p className="text-sm text-slate-500 mb-6">Sign in to your CityLink account.</p>
 
-          {/* Tab switcher */}
+          {/* Sign in / Sign up tab switcher */}
           <div className="grid grid-cols-2 rounded-2xl bg-slate-100 p-1 mb-6">
             <div className="rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-slate-900 shadow-sm">Sign in</div>
             <Link to="/signup" className="rounded-xl py-2.5 text-center text-sm font-semibold text-slate-500 hover:text-slate-700 transition">Sign up</Link>
           </div>
 
-          {/* API error */}
+          {/* Error message from the server — shown when login fails */}
           {apiError && (
             <div className="mb-5 flex items-center gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3" role="alert">
               <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -88,9 +98,10 @@ export default function Login() {
             </div>
           )}
 
+          {/* Login form — noValidate stops the browser showing its own error popups */}
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
 
-            {/* Email */}
+            {/* Email field */}
             <div>
               <label htmlFor="email" className="block text-sm font-semibold text-slate-800 mb-1.5">
                 Email address
@@ -116,7 +127,7 @@ export default function Login() {
               )}
             </div>
 
-            {/* Password */}
+            {/* Password field — includes a show/hide toggle button */}
             <div>
               <label htmlFor="password" className="block text-sm font-semibold text-slate-800 mb-1.5">
                 Password
@@ -133,6 +144,7 @@ export default function Login() {
                   aria-invalid={!!errors.password}
                   aria-describedby={errors.password ? "password-error" : undefined}
                 />
+                {/* Toggle button to show or hide the password */}
                 <button
                   type="button"
                   onClick={() => setShowPass((s) => !s)}
@@ -160,7 +172,7 @@ export default function Login() {
               )}
             </div>
 
-            {/* Submit */}
+            {/* Submit button — shows a spinner while the login request is in progress */}
             <button
               type="submit"
               disabled={loading}
@@ -177,7 +189,7 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Demo credentials */}
+          {/* Demo credentials box — for assessors and testers to log in easily */}
           <div className="mt-5 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-700">
             <p className="font-semibold mb-1">Demo credentials</p>
             <p>Admin: admin@citylink.gov / admin123</p>

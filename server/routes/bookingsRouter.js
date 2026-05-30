@@ -1,5 +1,7 @@
-// routes/bookingsRouter.js
-// Bookings — POST is public, /my is public (by email), admin routes are protected
+// routes/bookingsRouter.js — Sprint 3
+// API routes for event bookings
+// Creating and viewing your own bookings is public (no login needed)
+// Viewing all bookings, updating status and deleting requires admin/staff login
 
 const express  = require("express");
 const router   = express.Router();
@@ -7,8 +9,9 @@ const mongoose = require("mongoose");
 const Booking  = require("../models/Booking");
 const { protect, requireAdmin } = require("../middleware/auth");
 
-// POST create booking — public (residents book events)
-// Prevents duplicate bookings — one booking per user email per event
+// Create a new booking — public (residents book events from EventDetail page)
+// Checks for a duplicate first — one booking per user email per event
+// Returns 409 if the user has already booked this event
 router.post("/", async (req, res) => {
   try {
     const { eventId, eventTitle, userName, userEmail, bookingDate, status } = req.body;
@@ -16,7 +19,7 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "eventId, userName and userEmail are required" });
     }
 
-    // Convert eventId string to ObjectId for reliable duplicate check
+    // Convert the eventId string to a MongoDB ObjectId so the duplicate check works correctly
     let eventObjectId;
     try {
       eventObjectId = new mongoose.Types.ObjectId(eventId);
@@ -24,7 +27,8 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Invalid eventId format" });
     }
 
-    // Check if this user has already booked this event
+    // Check if this user already has a booking for this event
+    // maxTimeMS(5000) prevents the query hanging if MongoDB is slow
     const existing = await Booking.findOne({ eventId: eventObjectId, userEmail }).maxTimeMS(5000);
     if (existing) {
       return res.status(409).json({ message: "You have already booked this event." });
@@ -46,7 +50,9 @@ router.post("/", async (req, res) => {
   }
 });
 
-// GET bookings by email — public (residents view their own bookings on profile page)
+// Get bookings for a specific email address — public
+// Used by the Profile page to show a resident their own bookings
+// ?email=user@email.com
 router.get("/my", async (req, res) => {
   try {
     const { email } = req.query;
@@ -59,7 +65,8 @@ router.get("/my", async (req, res) => {
   }
 });
 
-// GET all bookings — admin/staff only
+// Get all bookings — admin/staff only
+// Used by the ManageBookings admin page
 router.get("/", protect, requireAdmin, async (req, res) => {
   try {
     const bookings = await Booking.find().sort({ createdAt: -1 });
@@ -69,7 +76,8 @@ router.get("/", protect, requireAdmin, async (req, res) => {
   }
 });
 
-// PUT update booking status — admin/staff only
+// Update a booking status (Confirmed / Pending / Cancelled) — admin/staff only
+// Used by the inline status dropdown in ManageBookings
 router.put("/:id", protect, requireAdmin, async (req, res) => {
   try {
     const updated = await Booking.findByIdAndUpdate(
@@ -84,7 +92,7 @@ router.put("/:id", protect, requireAdmin, async (req, res) => {
   }
 });
 
-// DELETE booking — admin/staff only
+// Delete a booking permanently — admin/staff only
 router.delete("/:id", protect, requireAdmin, async (req, res) => {
   try {
     const deleted = await Booking.findByIdAndDelete(req.params.id);

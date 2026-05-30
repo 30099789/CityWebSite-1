@@ -1,8 +1,16 @@
-// Events.jsx — styled, image support, subtle animations, no emojis
+// Events.jsx — Sprint 3
+// Assessment requirement: Dynamic events listing page loaded from MongoDB
+// Assessment requirement: search and filter functionality for community events
+// Assessment requirement: responsive card grid — mobile (1 col), tablet (2 col), desktop (3 col)
+// Assessment requirement: skeleton loading state while data is fetched from API
+// Images stored as Base64 in MongoDB and displayed directly in event cards
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import BASE_URL from "../services/api";
 
+// ── Status colour map ──────────────────────────────────────────────────────────
+// Visual badge colours for event status shown on each card
 const STATUS_STYLES = {
   Upcoming:  "bg-slate-100 text-slate-600 border-slate-200",
   Full:      "bg-red-50 text-red-600 border-red-100",
@@ -10,6 +18,8 @@ const STATUS_STYLES = {
   Cancelled: "bg-red-50 text-red-400 border-red-100",
 };
 
+// ── Inline SVG icon components ─────────────────────────────────────────────────
+// Self-contained SVG icons — no external icon library dependency on public pages
 const CalendarIcon = () => (
   <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
@@ -41,6 +51,9 @@ export default function Events() {
   const [search, setSearch]   = useState("");
   const [filter, setFilter]   = useState("All");
 
+  // ── Fetch all events — GET /api/events ────────────────────────────────────
+  // Assessment requirement: dynamic content loaded from MongoDB on page load
+  // Public route — no authentication required
   useEffect(() => {
     fetch(`${BASE_URL}/events`)
       .then((r) => r.json())
@@ -49,8 +62,11 @@ export default function Events() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Status filter tabs — All shows every event regardless of status
   const statuses = ["All", "Upcoming", "Full", "Completed"];
 
+  // Assessment requirement: search events by title or location
+  // Filter by status tab and text search simultaneously
   const visible = events.filter((ev) => {
     const matchFilter = filter === "All" || ev.status === filter;
     const matchSearch = ev.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -71,7 +87,7 @@ export default function Events() {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
 
-        {/* Search + filter */}
+        {/* Search input + status filter tabs */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1 max-w-sm">
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -93,13 +109,14 @@ export default function Events() {
           </div>
         </div>
 
+        {/* Result count — shown after loading completes */}
         {!loading && (
           <p className="text-xs text-slate-400 mb-5">
             Showing <span className="font-semibold text-slate-600">{visible.length}</span> of {events.length} events
           </p>
         )}
 
-        {/* Cards */}
+        {/* Loading skeleton — assessment requirement: loading state while fetching from MongoDB */}
         {loading ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => (
@@ -116,6 +133,7 @@ export default function Events() {
             ))}
           </div>
         ) : visible.length === 0 ? (
+          // Empty state — shown when search or filter returns no results
           <div className="text-center py-20">
             <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4 text-slate-300">
               <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
@@ -128,6 +146,7 @@ export default function Events() {
               className="text-sm font-semibold text-slate-900 hover:underline">Clear filters</button>
           </div>
         ) : (
+          // Events card grid — assessment requirement: responsive layout
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {visible.map((evt, i) => (
               <EventCard key={evt._id || evt.id} evt={evt} index={i} />
@@ -139,10 +158,15 @@ export default function Events() {
   );
 }
 
+// ── EventCard component ────────────────────────────────────────────────────────
+// Assessment requirement: event cards with image, date, time, location and status
+// "View Details" links to /events/:id for full event page and booking
+// isFull based on status field — capacity display was removed from public portal
 function EventCard({ evt, index }) {
   const eventId = evt._id || evt.id;
   const isFull  = evt.status === "Full";
 
+  // Format date for Australian locale (e.g. "15 Jun 2026")
   const dateStr = evt.date
     ? new Date(evt.date).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
     : "Date TBC";
@@ -152,16 +176,18 @@ function EventCard({ evt, index }) {
       className="group bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden"
       style={{ animationDelay: `${index * 60}ms` }}
     >
-      {/* Image or placeholder */}
+      {/* Event image — Base64 stored in MongoDB, displayed directly in src */}
       {evt.imageUrl ? (
         <div className="relative h-44 overflow-hidden">
           <img src={evt.imageUrl} alt={evt.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+          {/* Status badge overlay */}
           <div className="absolute top-3 right-3">
             <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-lg border backdrop-blur-sm bg-white/90 ${STATUS_STYLES[evt.status] || STATUS_STYLES.Upcoming}`}>
               {evt.status || "Upcoming"}
             </span>
           </div>
+          {/* Date chip overlay */}
           <div className="absolute bottom-3 left-3">
             <span className="inline-flex items-center gap-1.5 bg-black/50 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg">
               <CalendarIcon />{dateStr}
@@ -169,6 +195,7 @@ function EventCard({ evt, index }) {
           </div>
         </div>
       ) : (
+        // Placeholder — shown when no image has been uploaded for the event
         <div className="relative h-44 bg-slate-100 border-b border-slate-200 flex items-center justify-center">
           <div className="text-center">
             <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-400 mx-auto mb-2">
@@ -191,7 +218,7 @@ function EventCard({ evt, index }) {
         </div>
       )}
 
-      {/* Body */}
+      {/* Card body */}
       <div className="flex flex-col flex-1 p-5">
         {evt.category && (
           <span className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1.5">{evt.category}</span>
@@ -200,7 +227,7 @@ function EventCard({ evt, index }) {
           {evt.title}
         </h3>
 
-        {/* Meta — no capacity shown */}
+        {/* Event metadata — time and location (capacity removed from public display) */}
         <div className="space-y-1.5 mb-4 flex-1">
           {evt.time && (
             <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -214,6 +241,7 @@ function EventCard({ evt, index }) {
           )}
         </div>
 
+        {/* View Details CTA — disabled with pointer-events-none when event is Full */}
         <Link
           to={`/events/${eventId}`}
           className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${

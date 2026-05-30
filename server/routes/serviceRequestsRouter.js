@@ -1,8 +1,14 @@
+// routes/serviceRequestsRouter.js -- Sprint 3
+// API routes for service requests submitted by residents
+// Residents submit requests from the public Services page
+// Admin views and updates request status from ManageServiceRequests page
+
 const express        = require("express");
 const router         = express.Router();
 const ServiceRequest = require("../models/ServiceRequest");
 
-// GET all service requests (admin)
+// Get all service requests -- used by the admin ManageServiceRequests page
+// Sorted newest first
 router.get("/", async (req, res) => {
   try {
     const requests = await ServiceRequest.find().sort({ createdAt: -1 });
@@ -12,7 +18,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST create service request
+// Submit a new service request from the public Services page
+// Requires serviceId, userName and userEmail -- message is optional
 router.post("/", async (req, res) => {
   try {
     const { serviceId, serviceTitle, userName, userEmail, message } = req.body;
@@ -27,7 +34,8 @@ router.post("/", async (req, res) => {
   }
 });
 
-// PUT update status (admin)
+// Update a service request -- used by admin to change status
+// Status moves from Pending to In Progress to Resolved to Closed
 router.put("/:id", async (req, res) => {
   try {
     const updated = await ServiceRequest.findByIdAndUpdate(req.params.id, req.body, { new: true });

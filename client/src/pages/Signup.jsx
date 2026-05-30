@@ -1,24 +1,32 @@
-// Signup.jsx — Sprint 3 (polished with validation + password strength)
+// Signup.jsx — Sprint 3
+// This is the registration page for new CityLink residents
+// It validates all fields before sending to the server
+// It also shows a live password strength bar as the user types
+// After a successful signup, the user is logged in and sent to the home page
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Logo from "../components/Logo";
 
+// Check if an email address looks valid
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Works out how strong a password is and returns a score from 0-4
+// Checks: length >= 8, has uppercase, has number, has special character
 function passwordStrength(pw) {
   if (!pw) return { score: 0, label: "", color: "" };
   let score = 0;
-  if (pw.length >= 8)          score++;
-  if (/[A-Z]/.test(pw))       score++;
-  if (/[0-9]/.test(pw))       score++;
+  if (pw.length >= 8)           score++;
+  if (/[A-Z]/.test(pw))        score++;
+  if (/[0-9]/.test(pw))        score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
   const levels = [
-    { label: "",        color: ""                   },
-    { label: "Weak",    color: "bg-red-400"          },
-    { label: "Fair",    color: "bg-amber-400"        },
-    { label: "Good",    color: "bg-blue-500"         },
-    { label: "Strong",  color: "bg-emerald-500"      },
+    { label: "",       color: ""               },
+    { label: "Weak",   color: "bg-red-400"     },
+    { label: "Fair",   color: "bg-amber-400"   },
+    { label: "Good",   color: "bg-blue-500"    },
+    { label: "Strong", color: "bg-emerald-500" },
   ];
   return { score, ...levels[score] };
 }
@@ -26,34 +34,40 @@ function passwordStrength(pw) {
 export default function Signup() {
   const { register } = useAuth();
   const navigate     = useNavigate();
-  const [form, setForm]       = useState({ name: "", email: "", password: "", confirm: "" });
-  const [showPass, setShowPass]     = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [agreed, setAgreed]   = useState(false);
-  const [errors, setErrors]   = useState({});
-  const [apiError, setApiError] = useState("");
-  const [loading, setLoading] = useState(false);
 
+  const [form, setForm]             = useState({ name: "", email: "", password: "", confirm: "" });
+  const [showPass, setShowPass]     = useState(false);     // toggles password visibility
+  const [showConfirm, setShowConfirm] = useState(false);  // toggles confirm password visibility
+  const [agreed, setAgreed]         = useState(false);    // tracks the terms checkbox
+  const [errors, setErrors]         = useState({});       // field-level errors
+  const [apiError, setApiError]     = useState("");       // error from the server
+  const [loading, setLoading]       = useState(false);
+
+  // Calculate password strength as the user types
   const strength = passwordStrength(form.password);
 
+  // Clears the error for a field as soon as the user starts fixing it
   function update(field, val) {
     setForm((f) => ({ ...f, [field]: val }));
     if (errors[field]) setErrors((e) => ({ ...e, [field]: "" }));
   }
 
+  // Checks all fields are filled in correctly before submitting
   function validate() {
     const errs = {};
-    if (!form.name.trim())             errs.name     = "Full name is required.";
-    if (!form.email.trim())            errs.email    = "Email is required.";
-    else if (!EMAIL_REGEX.test(form.email)) errs.email = "Enter a valid email address.";
-    if (!form.password)                errs.password = "Password is required.";
-    else if (form.password.length < 6) errs.password = "Password must be at least 6 characters.";
-    if (!form.confirm)                 errs.confirm  = "Please confirm your password.";
-    else if (form.password !== form.confirm) errs.confirm = "Passwords do not match.";
-    if (!agreed)                       errs.agreed   = "You must agree to the Terms & Privacy Policy.";
+    if (!form.name.trim())                   errs.name     = "Full name is required.";
+    if (!form.email.trim())                  errs.email    = "Email is required.";
+    else if (!EMAIL_REGEX.test(form.email))  errs.email    = "Enter a valid email address.";
+    if (!form.password)                      errs.password = "Password is required.";
+    else if (form.password.length < 6)       errs.password = "Password must be at least 6 characters.";
+    if (!form.confirm)                       errs.confirm  = "Please confirm your password.";
+    else if (form.password !== form.confirm) errs.confirm  = "Passwords do not match.";
+    if (!agreed)                             errs.agreed   = "You must agree to the Terms & Privacy Policy.";
     return errs;
   }
 
+  // Handles form submission — validates first, then calls the register API
+  // On success, navigates to the home page (user is automatically logged in)
   async function handleSubmit(e) {
     e.preventDefault();
     setApiError("");
@@ -69,6 +83,7 @@ export default function Signup() {
     }
   }
 
+  // Red border if field has an error, normal border otherwise
   const inputClass = (field) =>
     `w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 transition ${
       errors[field]
@@ -76,6 +91,7 @@ export default function Signup() {
         : "border-slate-200 bg-white focus:ring-slate-900/10 focus:border-slate-400"
     }`;
 
+  // Reusable show/hide password toggle button
   const EyeIcon = ({ show, toggle, label }) => (
     <button type="button" onClick={toggle} aria-label={label}
       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition">
@@ -92,6 +108,7 @@ export default function Signup() {
     </button>
   );
 
+  // Reusable inline error message shown below a field
   const FieldError = ({ msg }) => msg ? (
     <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
       <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -105,6 +122,7 @@ export default function Signup() {
     <main className="min-h-screen bg-slate-100 flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
 
+        {/* Back to home link */}
         <Link to="/" className="inline-flex items-center gap-1.5 mb-6 text-sm font-medium text-slate-500 hover:text-slate-900 transition">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -114,6 +132,7 @@ export default function Signup() {
 
         <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8">
 
+          {/* CityLink logo */}
           <div className="mb-7">
             <Logo variant="compact" />
           </div>
@@ -121,13 +140,13 @@ export default function Signup() {
           <h1 className="text-2xl font-bold text-slate-900 mb-1">Create your account</h1>
           <p className="text-sm text-slate-500 mb-6">Join the CityLink community portal for free.</p>
 
-          {/* Tab switcher */}
+          {/* Sign in / Sign up tab switcher */}
           <div className="grid grid-cols-2 rounded-2xl bg-slate-100 p-1 mb-6">
             <Link to="/login" className="rounded-xl py-2.5 text-center text-sm font-semibold text-slate-500 hover:text-slate-700 transition">Sign in</Link>
             <div className="rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-slate-900 shadow-sm">Sign up</div>
           </div>
 
-          {/* API error */}
+          {/* Error message from the server — shown if registration fails */}
           {apiError && (
             <div className="mb-5 flex items-center gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3" role="alert">
               <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -137,6 +156,7 @@ export default function Signup() {
             </div>
           )}
 
+          {/* Registration form — noValidate stops browser showing its own popups */}
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
 
             {/* Full name */}
@@ -157,7 +177,7 @@ export default function Signup() {
               <FieldError msg={errors.email} />
             </div>
 
-            {/* Password */}
+            {/* Password — includes strength bar */}
             <div>
               <label htmlFor="password" className="block text-sm font-semibold text-slate-800 mb-1.5">Password</label>
               <div className="relative">
@@ -167,7 +187,7 @@ export default function Signup() {
                   className={`${inputClass("password")} pr-11`} aria-invalid={!!errors.password} />
                 <EyeIcon show={showPass} toggle={() => setShowPass((s) => !s)} label={showPass ? "Hide password" : "Show password"} />
               </div>
-              {/* Strength bar */}
+              {/* Strength bar — 4 coloured segments, fills based on score */}
               {form.password && (
                 <div className="mt-2">
                   <div className="flex gap-1 mb-1">
@@ -181,7 +201,7 @@ export default function Signup() {
               <FieldError msg={errors.password} />
             </div>
 
-            {/* Confirm password */}
+            {/* Confirm password — shows a tick or cross as the user types */}
             <div>
               <label htmlFor="confirm" className="block text-sm font-semibold text-slate-800 mb-1.5">Confirm password</label>
               <div className="relative">
@@ -191,7 +211,7 @@ export default function Signup() {
                   className={`${inputClass("confirm")} pr-11`} aria-invalid={!!errors.confirm} />
                 <EyeIcon show={showConfirm} toggle={() => setShowConfirm((s) => !s)} label={showConfirm ? "Hide password" : "Show password"} />
               </div>
-              {/* Match indicator */}
+              {/* Live match indicator */}
               {form.confirm && form.password && (
                 <p className={`mt-1.5 text-xs flex items-center gap-1 ${form.password === form.confirm ? "text-emerald-600" : "text-red-500"}`}>
                   {form.password === form.confirm ? (
@@ -204,10 +224,11 @@ export default function Signup() {
               <FieldError msg={errors.confirm} />
             </div>
 
-            {/* Terms */}
+            {/* Terms and Privacy Policy checkbox */}
             <div>
               <label className={`flex items-start gap-3 cursor-pointer p-3 rounded-xl border transition ${errors.agreed ? "border-red-200 bg-red-50/30" : "border-transparent hover:bg-slate-50"}`}>
-                <input type="checkbox" checked={agreed} onChange={(e) => { setAgreed(e.target.checked); if (errors.agreed) setErrors((er) => ({ ...er, agreed: "" })); }}
+                <input type="checkbox" checked={agreed}
+                  onChange={(e) => { setAgreed(e.target.checked); if (errors.agreed) setErrors((er) => ({ ...er, agreed: "" })); }}
                   className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-slate-900" />
                 <span className="text-sm text-slate-600">
                   I agree to the{" "}
@@ -219,7 +240,7 @@ export default function Signup() {
               <FieldError msg={errors.agreed} />
             </div>
 
-            {/* Submit */}
+            {/* Submit button — shows a spinner while creating the account */}
             <button type="submit" disabled={loading}
               className="w-full rounded-2xl bg-slate-900 text-white py-3 text-sm font-semibold hover:bg-slate-700 transition disabled:opacity-50 flex items-center justify-center gap-2">
               {loading ? (

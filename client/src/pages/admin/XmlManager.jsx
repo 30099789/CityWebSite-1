@@ -1,12 +1,17 @@
-// XmlManager.jsx — Sprint 3 Week 10/11
-// Assessment requirement: Staff can import/export XML data
-// Export: fetches live data from MongoDB and downloads as XML
-// Import: parses uploaded XML and POSTs each record to the real API
+// XmlManager.jsx -- Sprint 3 Week 10/11
+// Assessment requirement: Staff can import/export XML data for backup and migration
+// Export: fetches all live collections from MongoDB and downloads as a single XML file
+// Import: parses uploaded XML file, shows preview, then POSTs each record to the REST API
+// Also supports importing faq.xml -- extracts questions from nested category structure
+// Assessment requirement: sanitise imported data to match MongoDB schema before saving
+
 import { useState, useRef } from "react";
 import AdminNav from "../../components/AdminNav";
 import BASE_URL from "../../services/api";
 
-// ── XML builder ────────────────────────────────────────────────────────────────
+// Recursively converts a JavaScript object or array into XML string
+// Handles nested objects (e.g. contact: { phone, email }) and arrays of records
+// Special characters (&, <, >) are escaped to produce valid XML
 function toXml(obj, tag) {
   if (Array.isArray(obj)) return obj.map((item) => toXml(item, tag.replace(/s$/, ""))).join("\n");
   if (typeof obj === "object" && obj !== null) {
@@ -19,6 +24,8 @@ function toXml(obj, tag) {
   return `<${tag}>${String(obj ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</${tag}>`;
 }
 
+// Builds the full CityLink XML export document
+// Schema: <citylink> containing events, announcements, services, bookings, feedback
 function buildXML(data) {
   return (
     `<?xml version="1.0" encoding="UTF-8"?>\n<citylink>\n` +
@@ -31,7 +38,8 @@ function buildXML(data) {
   );
 }
 
-// ── XML parser ─────────────────────────────────────────────────────────────────
+// Extracts all elements matching a tag name and converts to plain JS objects
+// Child element tag names become object keys; text content becomes values
 function parseXMLItems(doc, tag) {
   return Array.from(doc.getElementsByTagName(tag)).map((el) => {
     const obj = {};
@@ -42,10 +50,26 @@ function parseXMLItems(doc, tag) {
   });
 }
 
-// ── Record sanitisers ──────────────────────────────────────────────────────────
-// XML sends everything as strings — these functions clean and validate each
-// record type before POSTing to the API, filling in defaults for missing fields
+// Extracts FAQ questions from faq.xml nested category structure
+// faq.xml uses <faq><category label="..."><question><q>...<a>...
+// Returns flat array of { category, question, answer, sortOrder } objects
+function parseFaqXML(doc) {
+  const items = [];
+  Array.from(doc.getElementsByTagName("category")).forEach((cat) => {
+    const category = cat.getAttribute("label") || "General";
+    Array.from(cat.getElementsByTagName("question")).forEach((q, i) => {
+      items.push({
+        category,
+        question:  q.querySelector("q")?.textContent?.trim() || "",
+        answer:    q.querySelector("a")?.textContent?.trim() || "",
+        sortOrder: i,
+      });
+    });
+  });
+  return items;
+}
 
+// Sanitises announcement records
 function sanitiseAnnouncement(item) {
   return {
     title:    (item.title    || "").trim() || "Untitled",
@@ -60,25 +84,25 @@ function sanitiseAnnouncement(item) {
   };
 }
 
+// Sanitises event records
 function sanitiseEvent(item) {
   return {
-    title:       (item.title    || "").trim() || "Untitled Event",
+    title:       (item.title       || "").trim() || "Untitled Event",
     description: (item.description || "").trim() || "No description provided",
-    date:        item.date      || new Date().toISOString(),
-    time:        (item.time     || "").trim() || "TBA",
-    location:    (item.location || "").trim() || "TBA",
-    category:    (item.category || "").trim() || "General",
-    status:      (item.status   || "").trim() || "Upcoming",
-    image:       (item.image    || "").trim(),
+    date:        item.date         || new Date().toISOString(),
+    time:        (item.time        || "").trim() || "TBA",
+    location:    (item.location    || "").trim() || "TBA",
+    category:    (item.category    || "").trim() || "General",
+    status:      (item.status      || "").trim() || "Upcoming",
+    image:       (item.image       || "").trim(),
   };
 }
 
+// Sanitises service records -- phone must be exactly 10 digits
 function sanitiseService(item) {
-  // Strip all non-digits from phone and pad/truncate to 10 digits
   const rawPhone = (item["contact.phone"] || item.phone || "0800000000").replace(/\D/g, "");
   const phone    = rawPhone.length === 10 ? rawPhone : "0800000000";
   const email    = (item["contact.email"] || item.email || "admin@citylink.gov").trim();
-
   return {
     title:       (item.title       || "").trim() || "Untitled Service",
     description: (item.description || "").trim() || "No description provided",
@@ -88,6 +112,7 @@ function sanitiseService(item) {
   };
 }
 
+// Sanitises booking records
 function sanitiseBooking(item) {
   return {
     event:  item.event  || item.eventId || undefined,
@@ -97,6 +122,7 @@ function sanitiseBooking(item) {
   };
 }
 
+// Sanitises feedback records
 function sanitiseFeedback(item) {
   return {
     name:    (item.name    || "").trim() || "Anonymous",
@@ -107,7 +133,16 @@ function sanitiseFeedback(item) {
   };
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
+// FAQ items are already clean from parseFaqXML -- pass through as-is
+function sanitiseFaq(item) {
+  return {
+    category:  (item.category || "General").trim(),
+    question:  (item.question || "").trim(),
+    answer:    (item.answer   || "").trim(),
+    sortOrder: parseInt(item.sortOrder) || 0,
+  };
+}
+
 export default function XmlManager() {
   const fileRef = useRef();
   const [exporting, setExporting]       = useState(false);
@@ -122,7 +157,6 @@ export default function XmlManager() {
     setTimeout(() => setToast(null), 4000);
   }
 
-  // Reads JWT token from localStorage and returns headers for authenticated requests
   function authHeaders() {
     const token = localStorage.getItem("citylink_token");
     return {
@@ -131,7 +165,7 @@ export default function XmlManager() {
     };
   }
 
-  // ── EXPORT ──────────────────────────────────────────────────────────────────
+  // Export all collections as XML and trigger browser download
   async function handleExport() {
     setExporting(true);
     try {
@@ -142,7 +176,6 @@ export default function XmlManager() {
         fetch(`${BASE_URL}/bookings`,      { headers: authHeaders() }),
         fetch(`${BASE_URL}/feedback`,      { headers: authHeaders() }),
       ]);
-
       const data = {
         events:        evRes.ok ? await evRes.json() : [],
         announcements: anRes.ok ? await anRes.json() : [],
@@ -150,7 +183,6 @@ export default function XmlManager() {
         bookings:      bkRes.ok ? await bkRes.json() : [],
         feedback:      fbRes.ok ? await fbRes.json() : [],
       };
-
       const xml  = buildXML(data);
       const blob = new Blob([xml], { type: "application/xml" });
       const url  = URL.createObjectURL(blob);
@@ -159,16 +191,15 @@ export default function XmlManager() {
       a.download = `citylink-export-${new Date().toISOString().slice(0, 10)}.xml`;
       a.click();
       URL.revokeObjectURL(url);
-
       showToast(`Exported ${data.events.length} events, ${data.announcements.length} announcements, ${data.services.length} services, ${data.bookings.length} bookings, ${data.feedback.length} feedback.`);
-    } catch (err) {
+    } catch {
       showToast("Export failed. Make sure the server is running.", "error");
     } finally {
       setExporting(false);
     }
   }
 
-  // ── IMPORT: parse and preview ─────────────────────────────────────────────
+  // Parse uploaded XML file -- supports both CityLink export format and faq.xml format
   function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -179,16 +210,31 @@ export default function XmlManager() {
       try {
         const parser = new DOMParser();
         const doc    = parser.parseFromString(ev.target.result, "application/xml");
+
         const parseError = doc.querySelector("parsererror");
         if (parseError) throw new Error("Invalid XML");
 
-        const parsed = {
-          events:        parseXMLItems(doc, "event"),
-          announcements: parseXMLItems(doc, "announcement"),
-          services:      parseXMLItems(doc, "service"),
-          bookings:      parseXMLItems(doc, "booking"),
-          feedback:      parseXMLItems(doc, "feedbackItem"),
-        };
+        // Detect file type -- faq.xml has <faq> root, CityLink export has <citylink> root
+        const isFaqFile = doc.querySelector("faq") !== null;
+
+        let parsed;
+        if (isFaqFile) {
+          // Parse faq.xml -- extract questions from nested category structure
+          parsed = {
+            events: [], announcements: [], services: [], bookings: [], feedback: [],
+            faqs: parseFaqXML(doc),
+          };
+        } else {
+          // Parse CityLink export format
+          parsed = {
+            events:        parseXMLItems(doc, "event"),
+            announcements: parseXMLItems(doc, "announcement"),
+            services:      parseXMLItems(doc, "service"),
+            bookings:      parseXMLItems(doc, "booking"),
+            feedback:      parseXMLItems(doc, "feedbackItem"),
+            faqs:          [],
+          };
+        }
 
         setPendingData(parsed);
         setPreview({
@@ -197,16 +243,17 @@ export default function XmlManager() {
           services:      parsed.services.length,
           bookings:      parsed.bookings.length,
           feedback:      parsed.feedback.length,
+          faqs:          parsed.faqs.length,
         });
         setImportResult(null);
       } catch {
-        showToast("Invalid XML file. Please use a CityLink export file.", "error");
+        showToast("Invalid XML file. Please use a CityLink export file or faq.xml.", "error");
       }
     };
     reader.readAsText(file);
   }
 
-  // ── IMPORT: confirm and POST to API ───────────────────────────────────────
+  // POST each record to its API endpoint
   async function confirmImport() {
     if (!pendingData) return;
     setImporting(true);
@@ -215,8 +262,6 @@ export default function XmlManager() {
     async function importCollection(items, endpoint, label, sanitise) {
       let ok = 0, fail = 0;
       for (const item of items) {
-        // Remove _id and __v so MongoDB creates new documents
-        // Then sanitise — convert types and fill in required field defaults
         const { _id, __v, ...raw } = item;
         const clean = sanitise(raw);
         try {
@@ -239,12 +284,13 @@ export default function XmlManager() {
       if (pendingData.services.length)      await importCollection(pendingData.services,      "services",      "Services",       sanitiseService);
       if (pendingData.bookings.length)      await importCollection(pendingData.bookings,      "bookings",      "Bookings",       sanitiseBooking);
       if (pendingData.feedback.length)      await importCollection(pendingData.feedback,      "feedback",      "Feedback",       sanitiseFeedback);
+      if (pendingData.faqs?.length)         await importCollection(pendingData.faqs,          "faqs",          "FAQs",           sanitiseFaq);
 
       setImportResult(results);
       setPreview(null);
       setPendingData(null);
       showToast(
-        `Import complete — ${results.success} records added.${results.failed > 0 ? ` ${results.failed} failed.` : ""}`,
+        `Import complete -- ${results.success} records added.${results.failed > 0 ? ` ${results.failed} failed.` : ""}`,
         results.failed > 0 ? "error" : "success"
       );
     } catch {
@@ -265,13 +311,13 @@ export default function XmlManager() {
     { key: "services",      label: "Services",      icon: "M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" },
     { key: "bookings",      label: "Bookings",      icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
     { key: "feedback",      label: "Feedback",      icon: "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" },
+    { key: "faqs",          label: "FAQs",          icon: "M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
   ];
 
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminNav title="XML Import / Export" />
 
-      {/* Toast */}
       {toast && (
         <div className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium max-w-sm ${
           toast.type === "error" ? "bg-red-50 border-red-200 text-red-700" : "bg-emerald-50 border-emerald-200 text-emerald-700"
@@ -279,7 +325,6 @@ export default function XmlManager() {
       )}
 
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-
         <div>
           <h1 className="text-2xl font-bold text-slate-900 mb-1">XML Data Manager</h1>
           <p className="text-sm text-slate-500">Export live database records as XML, or import XML files to add records to the database.</p>
@@ -290,7 +335,7 @@ export default function XmlManager() {
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
               <h2 className="text-base font-bold text-slate-900 mb-1">Export Data</h2>
-              <p className="text-sm text-slate-500">Downloads all current database records as a single XML file. Use this to back up data or share with others.</p>
+              <p className="text-sm text-slate-500">Downloads all current database records as a single XML file.</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
@@ -298,8 +343,7 @@ export default function XmlManager() {
               </svg>
             </div>
           </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-5">
             {COLS.map(({ key, label, icon }) => (
               <div key={key} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-center">
                 <svg className="w-4 h-4 text-slate-400 mx-auto mb-1" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
@@ -309,13 +353,12 @@ export default function XmlManager() {
               </div>
             ))}
           </div>
-
           <button onClick={handleExport} disabled={exporting}
             className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white text-sm font-semibold rounded-xl hover:bg-slate-700 transition disabled:opacity-50">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
-            {exporting ? "Exporting…" : "Export as XML"}
+            {exporting ? "Exporting..." : "Export as XML"}
           </button>
         </div>
 
@@ -324,7 +367,7 @@ export default function XmlManager() {
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
               <h2 className="text-base font-bold text-slate-900 mb-1">Import Data</h2>
-              <p className="text-sm text-slate-500">Upload a CityLink XML export file. Records will be added to the database — existing records are not overwritten.</p>
+              <p className="text-sm text-slate-500">Upload a CityLink XML export file or faq.xml to add records to the database.</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0 text-emerald-600">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
@@ -333,7 +376,6 @@ export default function XmlManager() {
             </div>
           </div>
 
-          {/* File picker */}
           <input ref={fileRef} type="file" accept=".xml,application/xml" onChange={handleFileChange} className="hidden" />
 
           {!preview ? (
@@ -348,20 +390,18 @@ export default function XmlManager() {
             <div className="space-y-4">
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">File contents detected</p>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {COLS.map(({ key, label }) => (
                     <div key={key} className={`rounded-xl border px-3 py-2 text-center ${preview[key] > 0 ? "bg-white border-slate-200" : "bg-slate-50 border-slate-100 opacity-50"}`}>
-                      <p className="text-lg font-bold text-slate-900">{preview[key]}</p>
+                      <p className="text-lg font-bold text-slate-900">{preview[key] || 0}</p>
                       <p className="text-xs text-slate-400">{label}</p>
                     </div>
                   ))}
                 </div>
               </div>
-
               <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
                 <strong>Note:</strong> This will add {Object.values(preview).reduce((a, b) => a + b, 0)} new records to the database. Existing records will not be changed.
               </div>
-
               <div className="flex gap-3">
                 <button onClick={cancelImport}
                   className="px-4 py-2.5 text-sm font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition">
@@ -369,13 +409,12 @@ export default function XmlManager() {
                 </button>
                 <button onClick={confirmImport} disabled={importing}
                   className="flex items-center gap-2 px-5 py-2.5 bg-emerald-700 text-white text-sm font-semibold rounded-xl hover:bg-emerald-800 transition disabled:opacity-50">
-                  {importing ? "Importing…" : "Confirm Import"}
+                  {importing ? "Importing..." : "Confirm Import"}
                 </button>
               </div>
             </div>
           )}
 
-          {/* Import result */}
           {importResult && (
             <div className="mt-5 bg-slate-50 border border-slate-200 rounded-xl p-4">
               <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Import Results</p>
@@ -394,14 +433,14 @@ export default function XmlManager() {
           )}
         </div>
 
-        {/* Info box */}
+        {/* Help box */}
         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 text-sm text-blue-700">
           <p className="font-semibold mb-1">How to use XML Import / Export</p>
           <ul className="space-y-1 text-blue-600 list-disc list-inside">
             <li>Use <strong>Export</strong> to download a backup of all live data as XML</li>
-            <li>Use <strong>Import</strong> to upload a previously exported XML file and add its records to the database</li>
-            <li>The XML format follows the CityLink schema — only files exported from this portal are supported</li>
-            <li>Import adds new records — it does not delete or overwrite existing ones</li>
+            <li>Use <strong>Import</strong> to upload a CityLink export file and add its records to the database</li>
+            <li>You can also upload <strong>faq.xml</strong> to import FAQ questions into the database</li>
+            <li>Import adds new records -- it does not delete or overwrite existing ones</li>
           </ul>
         </div>
       </div>

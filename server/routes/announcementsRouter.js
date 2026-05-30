@@ -1,12 +1,16 @@
-// routes/announcementsRouter.js
-// CRUD for announcements — write routes protected by JWT auth
+// routes/announcementsRouter.js — Sprint 3
+// API routes for announcements
+// Reading announcements is public — anyone can view them
+// Creating, editing and deleting requires a JWT token (admin or staff only)
 
 const express      = require("express");
 const router       = express.Router();
 const Announcement = require("../models/Announcement");
 const { protect, requireAdmin } = require("../middleware/auth");
 
-// GET all announcements — public
+// Get all announcements — sorted newest first
+// Public route — no login needed
+// Used by the public Announcements page and the admin table
 router.get("/", async (req, res) => {
   try {
     const announcements = await Announcement.find().sort({ createdAt: -1 });
@@ -16,7 +20,9 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST create announcement — admin/staff only
+// Create a new announcement — admin/staff only
+// Validates that all required fields are present before saving
+// Returns 400 if any required field is missing
 router.post("/", protect, requireAdmin, async (req, res) => {
   try {
     const { title, summary, content, priority, status, date, category, audience, author } = req.body;
@@ -33,7 +39,9 @@ router.post("/", protect, requireAdmin, async (req, res) => {
   }
 });
 
-// PUT update announcement — admin/staff only
+// Update an existing announcement — admin/staff only
+// Used for editing content and toggling publish/unpublish status
+// $set only updates the fields that are sent — leaves others unchanged
 router.put("/:id", protect, requireAdmin, async (req, res) => {
   try {
     const updatedAnnouncement = await Announcement.findByIdAndUpdate(
@@ -49,7 +57,7 @@ router.put("/:id", protect, requireAdmin, async (req, res) => {
   }
 });
 
-// DELETE announcement — admin/staff only
+// Delete an announcement permanently — admin/staff only
 router.delete("/:id", protect, requireAdmin, async (req, res) => {
   try {
     const deleted = await Announcement.findByIdAndDelete(req.params.id);

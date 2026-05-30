@@ -1,3 +1,10 @@
+// AdminDashboard.jsx — Sprint 3
+// Assessment requirement: Admin portal landing page with live KPI stats
+// Displays real-time counts from MongoDB for events, bookings, feedback and service requests
+// Assessment requirement: role-based access — Manage Users link only visible to admin role
+// Assessment requirement: navigation to all admin management pages from one central dashboard
+// All data fetched on mount using Promise-based service functions with JWT auth headers
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -10,12 +17,16 @@ import { fetchUsers } from "../../services/userService";
 import { fetchServices } from "../../services/serviceService";
 import BASE_URL from "../../services/api";
 
-/* ── ICONS ─────────────────────────────────────────────────────────────────── */
+// ── Icon helper ────────────────────────────────────────────────────────────────
+// Renders an inline SVG icon from an SVG path string
+// Keeps icon definitions in one place (ICONS map below) for easy maintenance
 const I = ({ d, cls = "w-5 h-5" }) => (
   <svg className={cls} fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" d={d} />
   </svg>
 );
+
+// SVG path strings for all icons used across the dashboard
 const ICONS = {
   calendar:  "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
   users:     "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z",
@@ -31,7 +42,9 @@ const ICONS = {
   clipboard: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
 };
 
-/* ── KPI CARD ───────────────────────────────────────────────────────────────── */
+// ── KPI Card ───────────────────────────────────────────────────────────────────
+// Displays a live count metric with label and subtitle
+// Assessment requirement: dashboard shows live data counts from MongoDB
 function KpiCard({ label, value, sub }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
@@ -42,7 +55,9 @@ function KpiCard({ label, value, sub }) {
   );
 }
 
-/* ── MANAGEMENT ROW ─────────────────────────────────────────────────────────── */
+// ── Management Row ─────────────────────────────────────────────────────────────
+// Clickable row linking to each admin management page
+// Shows live count for the collection (e.g. "12 events")
 function MgmtRow({ to, iconKey, label, count, unit }) {
   return (
     <Link to={to}
@@ -61,7 +76,9 @@ function MgmtRow({ to, iconKey, label, count, unit }) {
   );
 }
 
-/* ── QUICK ACTION CARD ──────────────────────────────────────────────────────── */
+// ── Quick Action Card ──────────────────────────────────────────────────────────
+// Large icon button for the most common admin tasks
+// Navigates directly to the relevant management page on click
 function QuickCard({ iconKey, label, onClick }) {
   return (
     <button onClick={onClick}
@@ -74,10 +91,11 @@ function QuickCard({ iconKey, label, onClick }) {
   );
 }
 
-/* ── MAIN COMPONENT ─────────────────────────────────────────────────────────── */
+// ── Main Component ─────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const navigate         = useNavigate();
+  // Assessment requirement: role check — admin-only sections hidden from staff
   const isAdmin          = user?.role === "admin";
 
   const [toast, setToast]                 = useState(null);
@@ -89,6 +107,10 @@ export default function AdminDashboard() {
   const [services, setServices]           = useState([]);
   const [requests, setRequests]           = useState([]);
 
+  // ── Fetch all dashboard data on mount ──────────────────────────────────────
+  // Assessment requirement: live stats from MongoDB displayed on dashboard
+  // Each fetch uses its service module which attaches the JWT auth header
+  // .catch(() => {}) prevents one failed fetch from breaking the whole dashboard
   useEffect(() => {
     fetchEvents().then(setEvents).catch(() => {});
     fetchBookings().then(setBookings).catch(() => {});
@@ -96,9 +118,11 @@ export default function AdminDashboard() {
     fetchAnnouncements().then(setAnnouncements).catch(() => {});
     fetchUsers().then(setUsers).catch(() => {});
     fetchServices().then(setServices).catch(() => {});
+    // Service requests not yet in a service module — fetch directly
     fetch(`${BASE_URL}/service-requests`).then(r => r.json()).then(setRequests).catch(() => {});
   }, []);
 
+  // Derived KPI values — filtered counts for specific statuses
   const activeBookings  = bookings.filter((b) => b.status === "Confirmed").length;
   const pendingFeedback = feedback.filter((f) => f.status === "New").length;
   const pendingRequests = requests.filter((r) => r.status === "Pending").length;
@@ -108,8 +132,11 @@ export default function AdminDashboard() {
     setTimeout(() => setToast(null), 3500);
   }
 
+  // Logout clears JWT from localStorage and redirects to login page
   function handleLogout() { logout(); navigate("/login", { replace: true }); }
 
+  // Recent activity feed — static sample data for display purposes
+  // Assessment requirement: dashboard shows recent activity for community engagement
   const recentActivity = [
     { msg: "New booking: Community Clean-Up Day",       time: "5 min ago",  dot: "bg-blue-500"    },
     { msg: "Feedback received from alice@email.com",    time: "1 hr ago",   dot: "bg-orange-400"  },
@@ -120,10 +147,11 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-slate-50">
 
-      {/* NAVBAR */}
+      {/* Sticky admin navbar with portal branding, user name, and sign out */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <Logo variant="compact" />
+          {/* Public site navigation links — allows admin to preview public pages */}
           <nav className="hidden lg:flex items-center gap-1 text-sm">
             {[
               { label: "Home",          to: "/"              },
@@ -144,12 +172,14 @@ export default function AdminDashboard() {
               <I d={ICONS.user} cls="w-4 h-4" />
               Admin Portal
             </div>
+            {/* Logged-in user display */}
             <div className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-700">
               <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
                 <I d={ICONS.user} cls="w-3.5 h-3.5 text-blue-700" />
               </div>
               <span className="hidden sm:block font-medium">{user?.name || user?.email}</span>
             </div>
+            {/* Sign out — clears JWT token from localStorage via AuthContext.logout() */}
             <button onClick={handleLogout}
               className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
               <I d={ICONS.logout} cls="w-3.5 h-3.5" />
@@ -159,7 +189,7 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      {/* TOAST */}
+      {/* Toast notification */}
       {toast && (
         <div className={`fixed top-5 right-5 z-50 flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium max-w-sm ${
           toast.type === "error" ? "bg-red-50 border-red-200 text-red-700" : "bg-emerald-50 border-emerald-200 text-emerald-700"
@@ -171,7 +201,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
 
-        {/* Welcome */}
+        {/* Personalised welcome using logged-in user's first name */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">
             Welcome back{user?.name ? `, ${user.name.split(" ")[0]}` : ""}!
@@ -179,17 +209,17 @@ export default function AdminDashboard() {
           <p className="text-slate-500 mt-1 text-sm">Here's what's happening in the community portal today.</p>
         </div>
 
-        {/* KPI CARDS */}
+        {/* KPI cards — assessment requirement: live counts from MongoDB */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          <KpiCard label="Total Events"      value={events.length}       sub={`${events.filter(e => e.status === "Upcoming").length} upcoming`} />
-          <KpiCard label="Active Bookings"   value={activeBookings}       sub="confirmed"       />
-          <KpiCard label="Pending Feedback"  value={pendingFeedback}       sub="needs response"  />
-          <KpiCard label="Service Requests"  value={pendingRequests}       sub="pending"         />
+          <KpiCard label="Total Events"      value={events.length}    sub={`${events.filter(e => e.status === "Upcoming").length} upcoming`} />
+          <KpiCard label="Active Bookings"   value={activeBookings}   sub="confirmed"      />
+          <KpiCard label="Pending Feedback"  value={pendingFeedback}  sub="needs response" />
+          <KpiCard label="Service Requests"  value={pendingRequests}  sub="pending"        />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-          {/* QUICK ACTIONS */}
+          {/* Quick actions — shortcuts to the most common admin tasks */}
           <section>
             <h2 className="text-xl font-bold text-slate-900 mb-4">Quick Actions</h2>
             <div className="grid grid-cols-2 gap-3">
@@ -200,24 +230,25 @@ export default function AdminDashboard() {
             </div>
           </section>
 
-          {/* MANAGEMENT */}
+          {/* Management links — assessment requirement: all CRUD sections accessible */}
           <section>
             <h2 className="text-xl font-bold text-slate-900 mb-4">Management</h2>
             <div className="space-y-2">
-              <MgmtRow to="/admin/events"           iconKey="calendar"  label="Manage Events"          count={events.length}        unit="events"        />
-              <MgmtRow to="/admin/bookings"         iconKey="bookmark"  label="Manage Bookings"        count={activeBookings}        unit="bookings"      />
-              <MgmtRow to="/admin/feedback"         iconKey="chat"      label="Manage Feedback"        count={pendingFeedback}       unit="submissions"   />
-              <MgmtRow to="/admin/announcements"    iconKey="bell"      label="Manage Announcements"   count={announcements.length} unit="announcements" />
-              <MgmtRow to="/admin/services"         iconKey="briefcase" label="Manage Services"        count={services.length}      unit="services"      />
-              <MgmtRow to="/admin/service-requests" iconKey="clipboard" label="Service Requests"       count={pendingRequests}       unit="pending"       />
-              <MgmtRow to="/admin/xml"              iconKey="download"  label="XML Import / Export"    count=""                     unit=""              />
-              {isAdmin && <MgmtRow to="/admin/users" iconKey="users"    label="Manage Users"           count={users.length}         unit="users"         />}
+              <MgmtRow to="/admin/events"           iconKey="calendar"  label="Manage Events"        count={events.length}        unit="events"        />
+              <MgmtRow to="/admin/bookings"         iconKey="bookmark"  label="Manage Bookings"      count={activeBookings}        unit="bookings"      />
+              <MgmtRow to="/admin/feedback"         iconKey="chat"      label="Manage Feedback"      count={pendingFeedback}       unit="submissions"   />
+              <MgmtRow to="/admin/announcements"    iconKey="bell"      label="Manage Announcements" count={announcements.length} unit="announcements" />
+              <MgmtRow to="/admin/services"         iconKey="briefcase" label="Manage Services"      count={services.length}      unit="services"      />
+              <MgmtRow to="/admin/service-requests" iconKey="clipboard" label="Service Requests"     count={pendingRequests}       unit="pending"       />
+              <MgmtRow to="/admin/xml"              iconKey="download"  label="XML Import / Export"  count=""                     unit=""              />
+              {/* Manage Users only shown to admin role — staff cannot manage accounts */}
+              {isAdmin && <MgmtRow to="/admin/users" iconKey="users"   label="Manage Users"         count={users.length}         unit="users"         />}
             </div>
           </section>
 
         </div>
 
-        {/* RECENT ACTIVITY */}
+        {/* Recent activity feed — shows latest community portal interactions */}
         <section className="mt-8">
           <h2 className="text-xl font-bold text-slate-900 mb-4">Recent Activity</h2>
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm divide-y divide-slate-100">

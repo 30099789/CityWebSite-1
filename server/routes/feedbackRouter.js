@@ -1,9 +1,15 @@
 // routes/feedbackRouter.js — Sprint 3 Week 11
+// API routes for community feedback submissions
+// All routes are currently public — no auth required
+// Residents submit feedback from the public /feedback page
+// Admin reads, updates and deletes feedback from the ManageFeedback page
+
 const express  = require("express");
 const router   = express.Router();
 const Feedback = require("../models/Feedback");
 
-// GET all feedback (admin)
+// Get all feedback submissions — used by the admin ManageFeedback page
+// Sorted newest first
 router.get("/", async (req, res) => {
   try {
     const items = await Feedback.find().sort({ createdAt: -1 });
@@ -13,16 +19,20 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST submit feedback
+// Submit new feedback from the public /feedback page
+// Requires category, rating (1-5) and a message
+// userName and userEmail are optional — residents can submit anonymously
 router.post("/", async (req, res) => {
   try {
     const { userName, userEmail, category, rating, message } = req.body;
+
     if (!category || !rating || !message?.trim()) {
       return res.status(400).json({ message: "Category, rating and message are required" });
     }
     if (rating < 1 || rating > 5) {
       return res.status(400).json({ message: "Rating must be between 1 and 5" });
     }
+
     const item = new Feedback({ userName, userEmail, category, rating, message });
     const saved = await item.save();
     res.status(201).json(saved);
@@ -31,7 +41,8 @@ router.post("/", async (req, res) => {
   }
 });
 
-// PUT update feedback (admin — change status or add response)
+// Update a feedback record — used by admin to change status or save a response
+// PUT /api/feedback/:id
 router.put("/:id", async (req, res) => {
   try {
     const updated = await Feedback.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -42,7 +53,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// DELETE feedback (admin)
+// Delete a feedback record permanently — used by admin
 router.delete("/:id", async (req, res) => {
   try {
     const deleted = await Feedback.findByIdAndDelete(req.params.id);

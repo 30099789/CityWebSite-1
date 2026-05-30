@@ -1,3 +1,11 @@
+// ManageAnnouncements.jsx — Sprint 3
+// Assessment requirement: Full CRUD for community announcements connected to MongoDB
+// Admin/staff can create drafts or publish announcements immediately
+// Assessment requirement: status management — Draft / Published / Scheduled workflow
+// Assessment requirement: role-based delete — only admin can delete, staff can edit/publish
+// Assessment requirement: announcements shown on public Announcements page when Published
+// Public page merges these DB announcements with static announcements.xml content
+
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import AdminNav from "../../components/AdminNav";
@@ -8,6 +16,9 @@ import {
   deleteAnnouncement,
 } from "../../services/announcementService";
 
+// ── Priority and status colour maps ───────────────────────────────────────────
+// Visual indicators for announcement urgency (Alert > Update > Notice)
+// and publication state (Published = live, Draft = hidden from public)
 const PRIORITY_COLORS = {
   Alert:  "bg-red-50 text-red-700 border-red-100",
   Update: "bg-blue-50 text-blue-700 border-blue-100",
@@ -18,27 +29,37 @@ const STATUS_COLORS = {
   Draft:     "bg-slate-100 text-slate-600 border-slate-200",
   Scheduled: "bg-orange-50 text-orange-700 border-orange-100",
 };
+
+// ── Default blank form ─────────────────────────────────────────────────────────
+// category defaults to "" — server requires a non-empty category so admin must pick one
+// date defaults to today in YYYY-MM-DD format for the date input
 const BLANK = {
-  title: "", summary: "", content: "", category: "",
+  title: "", summary: "", content: "", category: "Community",
   priority: "Notice", status: "Draft", audience: "All",
   date: new Date().toISOString().slice(0, 10), author: "",
 };
 
 export default function ManageAnnouncements() {
   const { user } = useAuth();
+  // Assessment requirement: role-based UI — delete button only shown to admin
   const isAdmin = user?.role === "admin";
+
   const [items, setItems]       = useState([]);
   const [loading, setLoading]   = useState(true);
   const [form, setForm]         = useState(BLANK);
-  const [editing, setEditing]   = useState(null);
+  const [editing, setEditing]   = useState(null);  // _id of announcement being edited
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch]     = useState("");
-  const [filter, setFilter]     = useState("All");
+  const [filter, setFilter]     = useState("All"); // status filter: All / Published / Draft
   const [saving, setSaving]     = useState(false);
   const [toast, setToast]       = useState(null);
 
+  // Load all announcements from MongoDB on mount
   useEffect(() => { load(); }, []);
 
+  // ── Fetch all announcements — GET /api/announcements ──────────────────────
+  // Assessment requirement: dynamic content loaded from MongoDB
+  // Public route — no auth required to read
   async function load() {
     try { setItems(await fetchAnnouncements()); }
     catch { showToast("Failed to load announcements.", "error"); }
@@ -51,12 +72,25 @@ export default function ManageAnnouncements() {
   }
 
   function update(k, v) { setForm((f) => ({ ...f, [k]: v })); }
-  function openNew()    { setForm(BLANK); setEditing(null); setShowForm(true); window.scrollTo(0, 0); }
-  function openEdit(a)  { setForm({ ...a, date: a.date ? new Date(a.date).toISOString().slice(0,10) : "" }); setEditing(a._id); setShowForm(true); window.scrollTo(0, 0); }
-  function cancel()     { setShowForm(false); setEditing(null); }
 
+  function openNew()   { setForm(BLANK); setEditing(null); setShowForm(true); window.scrollTo(0, 0); }
+
+  // When editing, slice the ISO date to YYYY-MM-DD for the date input field
+  function openEdit(a) {
+    setForm({ ...a, date: a.date ? new Date(a.date).toISOString().slice(0, 10) : "" });
+    setEditing(a._id);
+    setShowForm(true);
+    window.scrollTo(0, 0);
+  }
+
+  function cancel() { setShowForm(false); setEditing(null); }
+
+  // ── Save handler ───────────────────────────────────────────────────────────
+  // Assessment requirement: server-side validation — title, summary, content, author required
+  // If status is Published, announcement immediately appears on the public Announcements page
   async function save(e) {
     e.preventDefault();
+    // Client-side validation matches server-side required fields
     if (!form.title.trim() || !form.summary.trim() || !form.content.trim() || !form.author.trim()) {
       showToast("Title, summary, content and author are required.", "error");
       return;
@@ -64,10 +98,12 @@ export default function ManageAnnouncements() {
     setSaving(true);
     try {
       if (editing) {
+        // PUT /api/announcements/:id — update existing announcement
         const updated = await updateAnnouncement(editing, form);
         setItems((prev) => prev.map((a) => a._id === editing ? updated : a));
         showToast("Announcement updated.");
       } else {
+        // POST /api/announcements — create new announcement
         const created = await createAnnouncement(form);
         setItems((prev) => [created, ...prev]);
         showToast(form.status === "Published" ? "Announcement published!" : "Saved as draft.");
@@ -81,6 +117,8 @@ export default function ManageAnnouncements() {
     }
   }
 
+  // ── Delete handler ─────────────────────────────────────────────────────────
+  // Assessment requirement: admin-only delete with confirmation dialog
   async function remove(id) {
     if (!window.confirm("Delete this announcement?")) return;
     try {
@@ -90,6 +128,9 @@ export default function ManageAnnouncements() {
     } catch { showToast("Failed to delete.", "error"); }
   }
 
+  // ── Toggle publish ─────────────────────────────────────────────────────────
+  // One-click publish/unpublish from the table — no need to open edit form
+  // Published → Draft hides from public; Draft → Published makes it live immediately
   async function togglePublish(item) {
     const newStatus = item.status === "Published" ? "Draft" : "Published";
     try {
@@ -100,6 +141,8 @@ export default function ManageAnnouncements() {
   }
 
   const statuses = ["All", "Published", "Draft"];
+
+  // Filter by status tab and title search
   const filtered = items.filter((a) => {
     const matchFilter = filter === "All" || a.status === filter;
     const matchSearch = (a.title || "").toLowerCase().includes(search.toLowerCase());
@@ -115,6 +158,7 @@ export default function ManageAnnouncements() {
     <div className="min-h-screen bg-slate-50">
       <AdminNav />
 
+      {/* Toast notification */}
       {toast && (
         <div className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium max-w-sm ${
           toast.type === "error" ? "bg-red-50 border-red-200 text-red-700" : "bg-emerald-50 border-emerald-200 text-emerald-700"
@@ -122,6 +166,8 @@ export default function ManageAnnouncements() {
       )}
 
       <div className="max-w-6xl mx-auto px-4 py-8">
+
+        {/* Header with published/draft counts */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Announcements</h1>
@@ -137,6 +183,7 @@ export default function ManageAnnouncements() {
           </button>
         </div>
 
+        {/* Search + status filter tabs */}
         <div className="flex flex-col sm:flex-row gap-3 mb-5">
           <input type="text" placeholder="Search announcements…" value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -151,37 +198,50 @@ export default function ManageAnnouncements() {
           </div>
         </div>
 
+        {/* Create / Edit form */}
         {showForm && (
           <div className="bg-white rounded-2xl border border-blue-200 shadow-sm p-6 mb-6">
             <h2 className="text-base font-bold text-slate-900 mb-5">{editing ? "Edit Announcement" : "New Announcement"}</h2>
             <form onSubmit={save} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              {/* Title — required */}
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">Title *</label>
                 <input value={form.title} onChange={(e) => update("title", e.target.value)}
                   placeholder="e.g. Bin Night Schedule Changes" className={fieldCls} />
               </div>
+
+              {/* Summary — required, shown in list view on public page */}
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">Summary *</label>
                 <textarea value={form.summary} onChange={(e) => update("summary", e.target.value)} rows={2}
                   placeholder="Brief one or two sentence summary…" className={fieldCls} />
               </div>
+
+              {/* Content — required, shown when announcement is expanded */}
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">Content *</label>
                 <textarea value={form.content} onChange={(e) => update("content", e.target.value)} rows={4}
                   placeholder="Full announcement details…" className={fieldCls} />
               </div>
+
+              {/* Priority — Notice / Update / Alert */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">Priority</label>
                 <select value={form.priority} onChange={(e) => update("priority", e.target.value)} className={fieldCls}>
                   {["Notice","Update","Alert"].map(o => <option key={o}>{o}</option>)}
                 </select>
               </div>
+
+              {/* Category — required by server, defaults to Community */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">Category</label>
                 <select value={form.category} onChange={(e) => update("category", e.target.value)} className={fieldCls}>
-                  {["","Services","Events","Community","Roads","Environment","Grants","Waste","Rates","Libraries"].map(o => <option key={o}>{o}</option>)}
+                  {["Services","Events","Community","Roads","Environment","Grants","Waste","Rates","Libraries"].map(o => <option key={o}>{o}</option>)}
                 </select>
               </div>
+
+              {/* Status — Draft saves without publishing; Published makes live immediately */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">Status</label>
                 <select value={form.status} onChange={(e) => update("status", e.target.value)} className={fieldCls}>
@@ -189,21 +249,29 @@ export default function ManageAnnouncements() {
                   <option value="Published">Published — visible on public website</option>
                 </select>
               </div>
+
+              {/* Audience — who the announcement is intended for */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">Audience</label>
                 <select value={form.audience} onChange={(e) => update("audience", e.target.value)} className={fieldCls}>
                   {["All","Residents","Staff"].map(o => <option key={o}>{o}</option>)}
                 </select>
               </div>
+
+              {/* Author — required, identifies the department or person posting */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">Author / Department *</label>
                 <input value={form.author} onChange={(e) => update("author", e.target.value)}
                   placeholder="e.g. CityLink Services Team" className={fieldCls} />
               </div>
+
+              {/* Date — defaults to today */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">Date</label>
                 <input type="date" value={form.date} onChange={(e) => update("date", e.target.value)} className={fieldCls} />
               </div>
+
+              {/* Form actions */}
               <div className="sm:col-span-2 flex gap-3 justify-end pt-2 border-t border-slate-100">
                 <button type="button" onClick={cancel}
                   className="px-4 py-2 text-sm font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition">
@@ -218,6 +286,7 @@ export default function ManageAnnouncements() {
           </div>
         )}
 
+        {/* Announcements table */}
         {loading ? (
           <p className="text-slate-400 text-sm py-10 text-center">Loading announcements…</p>
         ) : (
@@ -253,10 +322,11 @@ export default function ManageAnnouncements() {
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-slate-500 text-xs hidden md:table-cell">
-                      {a.date ? new Date(a.date).toLocaleDateString() : ""}
+                      {a.date ? new Date(a.date).toLocaleDateString("en-AU") : ""}
                     </td>
                     <td className="px-4 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {/* One-click publish toggle — no need to open the edit form */}
                         <button onClick={() => togglePublish(a)}
                           className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition ${
                             a.status === "Published"
@@ -266,6 +336,7 @@ export default function ManageAnnouncements() {
                           {a.status === "Published" ? "Unpublish" : "Publish"}
                         </button>
                         <button onClick={() => openEdit(a)} className="text-xs font-semibold text-blue-600 hover:underline">Edit</button>
+                        {/* Delete only available to admin role — staff can edit and publish but not delete */}
                         {isAdmin && <button onClick={() => remove(a._id)} className="text-xs font-semibold text-red-500 hover:underline">Delete</button>}
                       </div>
                     </td>

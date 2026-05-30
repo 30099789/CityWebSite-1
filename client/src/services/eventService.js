@@ -1,43 +1,40 @@
-// eventService.js — Sprint 3
-// CRUD for events — sends JWT token on write requests
-// Assessment requirement: all write operations protected by JWT auth
+// bookingService.js — Sprint 3
+// API calls for managing bookings — all routes require a JWT token (admin/staff only)
+// Residents create bookings directly from EventDetail.jsx using fetch()
+// These functions are used by the ManageBookings admin page
+
 import BASE_URL from "./api";
 import { authHeaders } from "../context/AuthContext";
 
-const API_URL = `${BASE_URL}/events`;
+const URL = `${BASE_URL}/bookings`;
 
-export async function fetchEvents() {
-  const res = await fetch(API_URL);
-  if (!res.ok) throw new Error("Failed to fetch events");
+// Get all bookings — used by the admin Manage Bookings page
+// GET /api/bookings — requires admin or staff token
+export async function fetchBookings() {
+  const res = await fetch(URL, { headers: authHeaders() });
+  if (!res.ok) throw new Error("Failed to fetch bookings");
   return res.json();
 }
 
-export async function fetchEventById(id) {
-  const res = await fetch(`${API_URL}/${id}`);
-  if (!res.ok) throw new Error("Failed to fetch event");
-  return res.json();
-}
-
-export async function createEvent(data) {
-  const res = await fetch(API_URL, {
-    method: "POST", headers: authHeaders(), body: JSON.stringify(data),
+// Update a booking status (Confirmed / Pending / Cancelled)
+// PUT /api/bookings/:id — requires admin or staff token
+export async function updateBooking(id, data) {
+  const res = await fetch(`${URL}/${id}`, {
+    method:  "PUT",
+    headers: authHeaders(),
+    body:    JSON.stringify(data),
   });
-  if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Failed to create event"); }
+  if (!res.ok) throw new Error("Failed to update booking");
   return res.json();
 }
 
-export async function updateEvent(id, data) {
-  const res = await fetch(`${API_URL}/${id}`, {
-    method: "PUT", headers: authHeaders(), body: JSON.stringify(data),
+// Delete a booking record permanently
+// DELETE /api/bookings/:id — requires admin or staff token
+export async function deleteBooking(id) {
+  const res = await fetch(`${URL}/${id}`, {
+    method:  "DELETE",
+    headers: authHeaders(),
   });
-  if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Failed to update event"); }
-  return res.json();
-}
-
-export async function deleteEvent(id) {
-  const res = await fetch(`${API_URL}/${id}`, {
-    method: "DELETE", headers: authHeaders(),
-  });
-  if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Failed to delete event"); }
+  if (!res.ok) throw new Error("Failed to delete booking");
   return res.json();
 }

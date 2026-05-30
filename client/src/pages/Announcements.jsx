@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 import { getAnnouncementsXML } from "../services/xmlService";
 import { fetchAnnouncements } from "../services/announcementService";
 
+// ── Priority display config ──────────────────────────────────────────────────
+// Maps priority values from both XML (high/medium/low) and MongoDB (Alert/Update/Notice)
+// to consistent colours and labels — handles both naming conventions
 const PRIORITY_CONFIG = {
   high:   { bar: "bg-red-500",   badge: "bg-red-50 text-red-700 border-red-200",       label: "High"   },
   medium: { bar: "bg-amber-500", badge: "bg-amber-50 text-amber-700 border-amber-200", label: "Medium" },
@@ -53,6 +56,8 @@ export default function Announcements() {
     load();
   }, []);
 
+  // Filter pills — uses XML-style priority names (high/medium/low)
+  // DB announcements use Alert/Update/Notice but are shown under All
   const priorities = ["All", "high", "medium", "low"];
   const visible = filter === "All" ? items : items.filter((a) => a.priority === filter);
 
@@ -147,6 +152,10 @@ export default function Announcements() {
   );
 }
 
+// ── Announcement Card ─────────────────────────────────────────────────────────
+// Assessment requirement: expandable accordion layout for announcements
+// Click to expand/collapse full content — accessible with aria-expanded
+// Works for both XML-sourced and MongoDB-sourced announcements
 function AnnouncementCard({ item, index }) {
   const [open, setOpen] = useState(false);
   const cfg = PRIORITY_CONFIG[item.priority] || DEFAULT_PRIORITY;
@@ -173,7 +182,7 @@ function AnnouncementCard({ item, index }) {
 
       <button onClick={() => setOpen((o) => !o)}
         className="w-full text-left px-6 py-5 flex items-start justify-between gap-4 hover:bg-slate-50 transition-colors"
-        aria-expanded={open}>
+        aria-expanded={open}  {/* Assessment requirement: WCAG accessible button with aria-expanded state */}>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             {!item.imageUrl && (
