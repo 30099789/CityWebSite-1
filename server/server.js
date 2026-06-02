@@ -27,9 +27,19 @@ const uploadRouter          = require("./routes/uploadRouter");
 const faqRouter             = require("./routes/faqRouter");
 
 const app = express();
+app.disable("x-powered-by");
 
 // Allow requests from the Vercel frontend
-app.use(cors());
+const allowedOrigins = [
+  "https://city-web-site.vercel.app",
+  "http://localhost:5173",
+];
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error("Not allowed by CORS"));
+  },
+}));
 
 // Parse JSON bodies -- limit raised to 10mb to support Base64 image uploads
 app.use(express.json({ limit: "10mb" }));

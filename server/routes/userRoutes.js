@@ -122,6 +122,9 @@ router.get("/:id", protect, async (req, res) => {
 // If password included, hashes it before saving
 // Returns updated user without password field
 router.put("/:id", protect, async (req, res) => {
+  if (req.user.id !== req.params.id && req.user.role !== "admin") {
+    return res.status(403).json({ message: "Forbidden — you can only edit your own profile" });
+  }
   try {
     const { password, ...rest } = req.body;
     const update = { ...rest };
